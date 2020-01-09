@@ -661,6 +661,7 @@ public class KubernetesContainerClient implements ContainerClient {
                             .withMedium("Memory")
                         .endEmptyDir()
                     .endVolume()
+                    .withServiceAccount(config.getServiceAccount())
                     .addNewContainer()
                         .withName("selenium-node")
                         .withImage(config.getImage())

@@ -37,6 +37,7 @@ public class PodConfiguration {
     private PodSecurityContext podSecurityContext;
     private SecurityContext containerSecurityContext;
     private String schedulerName;
+    private String serviceAccount;
 
     public String getNodePort() {
         return nodePort;
@@ -154,5 +155,13 @@ public class PodConfiguration {
 
     public void setSchedulerName(String schedulerName) {
         this.schedulerName = schedulerName;
+    }
+
+    public String getServiceAccount() {
+        return serviceAccount;
+    }
+
+    public void setServiceAccount(String serviceAccount) {
+        this.serviceAccount = serviceAccount;
     }
 }
