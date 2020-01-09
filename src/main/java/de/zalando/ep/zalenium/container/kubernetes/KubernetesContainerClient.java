@@ -78,6 +78,7 @@ public class KubernetesContainerClient implements ContainerClient {
     private List<Toleration> tolerations = new ArrayList<>();
     private String imagePullPolicy;
     private String schedulerName;
+    private String serviceAccount;
     private List<LocalObjectReference> imagePullSecrets;
     private PodSecurityContext configuredPodSecurityContext;
     private SecurityContext configuredContainerSecurityContext;
@@ -121,6 +122,7 @@ public class KubernetesContainerClient implements ContainerClient {
             discoverPodSecurityContext();
             discoverSchedulerName();
             discoverContainerSecurityContext();
+            discoverServiceAcount();
             buildResourceMaps();
 
             logger.info(String.format(
@@ -252,6 +254,10 @@ public class KubernetesContainerClient implements ContainerClient {
             .map(Container::getSecurityContext)
             .findFirst()
             .orElse(null);
+    }
+
+    private void discoverServiceAcount(){
+        serviceAccount = zaleniumPod.getSpec().getServiceAccount();
     }
 
     @Override
@@ -433,6 +439,7 @@ public class KubernetesContainerClient implements ContainerClient {
         config.setPodRequests(seleniumPodRequests);
         config.setOwner(zaleniumPod);
         config.setSchedulerName(schedulerName);
+        config.setServiceAccount(serviceAccount);
         config.setPodSecurityContext(configuredPodSecurityContext);
         config.setContainerSecurityContext(configuredContainerSecurityContext);
 
