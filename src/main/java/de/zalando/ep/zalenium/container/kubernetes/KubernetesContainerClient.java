@@ -257,7 +257,10 @@ public class KubernetesContainerClient implements ContainerClient {
     }
 
     private void discoverServiceAcount(){
-        serviceAccount = zaleniumPod.getSpec().getServiceAccount();
+        serviceAccount = environment.getStringEnvVariable(
+                "ZALENIUM_SELENIUM_CONTAINER_SERVICE_ACCOUNT",
+                zaleniumPod.getSpec().getServiceAccount()
+        );
     }
 
     @Override
