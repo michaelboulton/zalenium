@@ -231,6 +231,12 @@
             <artifactId>httpmime</artifactId>
             <version>${httpmime.version}</version>
         </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>1.18.10</version>
+                <scope>provided</scope>
+            </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
@@ -287,7 +293,7 @@
                                 <resource>
                                     <directory>scripts</directory>
                                     <filtering>true</filtering>
-                                </resource>
+                                </resource>`
                                 <resource>
                                     <directory>docker</directory>
                                     <filtering>true</filtering>

@@ -7,22 +7,7 @@ import de.zalando.ep.zalenium.streams.InputStreamGroupIterator;
 import de.zalando.ep.zalenium.streams.MapInputStreamAdapter;
 import de.zalando.ep.zalenium.streams.TarInputStreamGroupWrapper;
 import de.zalando.ep.zalenium.util.Environment;
-import io.fabric8.kubernetes.api.model.Container;
-import io.fabric8.kubernetes.api.model.ContainerStateTerminated;
-import io.fabric8.kubernetes.api.model.ContainerStatus;
-import io.fabric8.kubernetes.api.model.DoneablePod;
-import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.HostAlias;
-import io.fabric8.kubernetes.api.model.LocalObjectReference;
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodFluent;
-import io.fabric8.kubernetes.api.model.PodList;
-import io.fabric8.kubernetes.api.model.PodSecurityContext;
-import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.SecurityContext;
-import io.fabric8.kubernetes.api.model.Toleration;
-import io.fabric8.kubernetes.api.model.Volume;
-import io.fabric8.kubernetes.api.model.VolumeMount;
+import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
@@ -32,13 +17,15 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.File;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -94,18 +81,21 @@ public class KubernetesContainerClient implements ContainerClient {
                                      Function<PodConfiguration, DoneablePod> createDoneablePod,
                                      KubernetesClient client) {
         logger.info("Initialising Kubernetes support");
+        String appName;
 
         this.environment = environment;
         this.createDoneablePod = createDoneablePod;
+        String hostname;
         try {
             this.client = client;
 
             // Lookup our current hostname, this lets us lookup ourselves via the kubernetes api
-            String hostname = findHostname();
+            hostname = findHostname();
 
             zaleniumPod = client.pods().withName(hostname).get();
 
-            String appName = zaleniumPod.getMetadata().getLabels().get("app");
+            appName = zaleniumPod.getMetadata().getLabels().get("app");
+
 
             appLabelMap = new HashMap<>();
             appLabelMap.put("app", appName);
@@ -125,18 +115,20 @@ public class KubernetesContainerClient implements ContainerClient {
             discoverServiceAcount();
             buildResourceMaps();
 
-            logger.info(String.format(
-                    "Kubernetes support initialised.\n"
-                            + "\tPod name: %s\n"
-                            + "\tapp label: %s\n"
-                            + "\tzalenium service name: %s\n"
-                            + "\tSelenium Pod Resource Limits: %s\n"
-                            + "\tSelenium Pod Resource Requests: %s",
-                    hostname, appName, zaleniumAppName,
-                            seleniumPodLimits.toString(), seleniumPodRequests.toString()));
         } catch (Exception e) {
-            logger.warn("Error initialising Kubernetes support.", e);
+            logger.error("Error initialising Kubernetes support. {}", e);
+            throw e;
         }
+
+        logger.info(String.format(
+                "Kubernetes support initialised.\n"
+                        + "\tPod name: %s\n"
+                        + "\tapp label: %s\n"
+                        + "\tzalenium service name: %s\n"
+                        + "\tSelenium Pod Resource Limits: %s\n"
+                        + "\tSelenium Pod Resource Requests: %s",
+                hostname, appName, zaleniumAppName,
+                seleniumPodLimits.toString(), seleniumPodRequests.toString()));
     }
 
     private void buildResourceMaps() {
@@ -172,7 +164,7 @@ public class KubernetesContainerClient implements ContainerClient {
     }
 
     private void discoverNodeSelector() {
-        final Map<String,String> nodeSelectorFromEnv = environment.getMapEnvVariable(ZALENIUM_KUBERNETES_NODE_SELECTOR, new HashMap<>());
+        final Map<String, String> nodeSelectorFromEnv = environment.getMapEnvVariable(ZALENIUM_KUBERNETES_NODE_SELECTOR, new HashMap<>());
         if (nodeSelectorFromEnv != null && !nodeSelectorFromEnv.isEmpty()) {
             nodeSelector = nodeSelectorFromEnv;
         } else {
@@ -215,19 +207,21 @@ public class KubernetesContainerClient implements ContainerClient {
                 .forEach(validMounts::add);
 
         // Look through the volume mounts to see if the shared folder is mounted
-        if (!validMounts.isEmpty()) {
-            List<Volume> volumes = zaleniumPod.getSpec().getVolumes();
-            for (VolumeMount validMount : validMounts) {
-                volumes.stream()
-                        .filter(volume -> validMount.getName().equalsIgnoreCase(volume.getName()))
-                        .findFirst()
-                        .ifPresent(volume -> {
-                            if(nodeSharedArtifactsMount == null) {
-                                nodeSharedArtifactsMount = validMount;
-                            }
-                            mountedSharedFoldersMap.put(validMount, volume);
-                        });
-            }
+        List<Volume> volumes = zaleniumPod.getSpec().getVolumes();
+
+        logger.info("Could mount {} volumes", validMounts.size());
+
+        for (VolumeMount validMount : validMounts) {
+            volumes.stream()
+                    .filter(volume -> validMount.getName().equalsIgnoreCase(volume.getName()))
+                    .findFirst()
+                    .ifPresent(volume -> {
+                        if (nodeSharedArtifactsMount == null) {
+                            nodeSharedArtifactsMount = validMount;
+                        }
+                        mountedSharedFoldersMap.put(validMount, volume);
+                        logger.info("Mounting {}", validMount);
+                    });
         }
     }
 
@@ -235,8 +229,7 @@ public class KubernetesContainerClient implements ContainerClient {
         String hostname;
         try {
             hostname = InetAddress.getLocalHost().getHostName();
-        }
-        catch (UnknownHostException e) {
+        } catch (UnknownHostException e) {
             hostname = null;
         }
 
@@ -244,19 +237,25 @@ public class KubernetesContainerClient implements ContainerClient {
     }
 
     private void discoverPodSecurityContext() {
-    	configuredPodSecurityContext = zaleniumPod.getSpec().getSecurityContext();
+        configuredPodSecurityContext = zaleniumPod.getSpec().getSecurityContext();
     }
 
     private void discoverContainerSecurityContext() {
-        configuredContainerSecurityContext = zaleniumPod.getSpec().getContainers()
-            .stream()
-            .filter(c -> DEFAULT_ZALENIUM_CONTAINER_NAME.equals(c.getName()))
-            .map(Container::getSecurityContext)
-            .findFirst()
-            .orElse(null);
+//        This used to use findFirst().elsE(null) but it was actually raising an NPE for some rason
+        List<SecurityContext> securityContexts = zaleniumPod.getSpec().getContainers()
+                .stream()
+                .filter(c -> DEFAULT_ZALENIUM_CONTAINER_NAME.equals(c.getName()))
+                .map(Container::getSecurityContext)
+                .collect(Collectors.toList());
+
+        if (securityContexts.isEmpty()) {
+            configuredContainerSecurityContext = null;
+        } else {
+            configuredContainerSecurityContext = securityContexts.get(0);
+        }
     }
 
-    private void discoverServiceAcount(){
+    private void discoverServiceAcount() {
         serviceAccount = environment.getStringEnvVariable(
                 "ZALENIUM_SELENIUM_CONTAINER_SERVICE_ACCOUNT",
                 zaleniumPod.getSpec().getServiceAccount()
@@ -275,11 +274,12 @@ public class KubernetesContainerClient implements ContainerClient {
      * Unfortunately due to the fact that any error handling happens on another thread, if the tar command fails the
      * InputStream will simply be empty and it will close. It won't propagate an Exception to the reader of the
      * InputStream.
+     *
      * @return
      */
     @Override
     public InputStreamGroupIterator copyFiles(String containerId, String folderName) {
-        if(nodeSharedArtifactsMount != null) {
+        if (nodeSharedArtifactsMount != null) {
             return copyFilesFromSharedVolume(containerId, folderName);
         } else {
             return copyFilesThroughCommands(containerId, folderName);
@@ -296,15 +296,15 @@ public class KubernetesContainerClient implements ContainerClient {
                 .map(env -> env.getValue())
                 .findFirst();
 
-        if(!oWorkDir.isPresent()) {
+        if (!oWorkDir.isPresent()) {
             throw new RuntimeException("SHARED_DIR not present in pod" + containerId);
         }
         String workDir = oWorkDir.get();
 
         File dir = new File(workDir + folderName);
         File[] directoryListing = dir.listFiles();
-        for(File f : directoryListing) {
-            if(f.getName().endsWith(".log") || f.getName().endsWith(".mp4")) {
+        for (File f : directoryListing != null ? directoryListing : new File[0]) {
+            if (f.getName().endsWith(".log") || f.getName().endsWith(".mp4")) {
                 streams.put(f.getName(), f);
             }
         }
@@ -314,7 +314,7 @@ public class KubernetesContainerClient implements ContainerClient {
 
     private InputStreamGroupIterator copyFilesThroughCommands(String containerId, String folderName) {
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-        String[] command = new String[] { "tar", "-C", folderName, "-c", "." };
+        String[] command = new String[]{"tar", "-C", folderName, "-c", "."};
         CopyFilesExecListener listener = new CopyFilesExecListener(stderr, command, containerId);
         ExecWatch exec = client.pods().withName(containerId).redirectingOutput().writingError(stderr).usingListener(listener).exec(command);
 
@@ -379,8 +379,7 @@ public class KubernetesContainerClient implements ContainerClient {
         if (waitForExecution) {
             // If we're going to wait, let's use the same thread
             waitForResultsAndCleanup.get();
-        }
-        else {
+        } else {
             // Let the common ForkJoinPool handle waiting for the results, since we don't care when it finishes.
             CompletableFuture.supplyAsync(waitForResultsAndCleanup);
         }
@@ -395,27 +394,25 @@ public class KubernetesContainerClient implements ContainerClient {
 
     @Override
     public ContainerCreationStatus createContainer(String zaleniumContainerName, String image, Map<String, String> envVars,
-                               String nodePort) {
+                                                   String nodePort) {
         String containerIdPrefix = String.format("%s-%s-", zaleniumAppName, nodePort);
 
         // Convert the environment variables into the Kubernetes format.
         List<EnvVar> flattenedEnvVars = envVars.entrySet().stream()
-                                            .map(e -> new EnvVar(e.getKey(), e.getValue(), null))
-                                            .collect(Collectors.toList());
+                .map(e -> new EnvVar(e.getKey(), e.getValue(), null))
+                .collect(Collectors.toList());
 
-        if(nodeSharedArtifactsMount != null) {
-            String workDir = nodeSharedArtifactsMount.getMountPath() + "/" + UUID.randomUUID().toString();
+        if (nodeSharedArtifactsMount != null) {
+            String workDir = nodeSharedArtifactsMount.getMountPath() ;
             flattenedEnvVars.add(new EnvVar("SHARED_DIR", workDir, null));
-            flattenedEnvVars.add(new EnvVar("VIDEOS_DIR", workDir + "/videos", null));
-            flattenedEnvVars.add(new EnvVar("LOGS_DIR", workDir + "/var/log/cont", null));
+            String videoDir = workDir + "/";
+            flattenedEnvVars.add(new EnvVar("VIDEOS_DIR", videoDir, null));
+            String logDir = workDir + "/";
+            flattenedEnvVars.add(new EnvVar("LOGS_DIR", logDir, null));
             if (!Files.exists(Paths.get(workDir))) {
-                try {
-                    Files.createDirectories(Paths.get(workDir));
-                    Files.createDirectories(Paths.get(workDir + "/videos"));
-                    Files.createDirectories(Paths.get(workDir + "/var/log/cont"));
-                } catch (IOException e) {
-                    logger.error("Error creating folder {}", workDir, e);
-                }
+                Objects.requireNonNull(createDirectories(workDir));
+                Objects.requireNonNull(createDirectories(videoDir));
+                Objects.requireNonNull(createDirectories(logDir));
             }
         }
 
@@ -454,6 +451,16 @@ public class KubernetesContainerClient implements ContainerClient {
         return new ContainerCreationStatus(true, containerName, containerName, nodePort);
     }
 
+    @Nullable
+    private static Path createDirectories(String dirName) {
+        try {
+            return Files.createDirectories(Paths.get(dirName));
+        } catch (IOException e) {
+            logger.error("Error creating folder {}: {}", dirName, e);
+            return null;
+        }
+    }
+
     @Override
     public void initialiseContainerEnvironment() {
         // Delete any leftover pods from a previous time
@@ -470,8 +477,7 @@ public class KubernetesContainerClient implements ContainerClient {
             String podIP = pod.getStatus().getPodIP();
             logger.debug(String.format("Pod %s, IP -> %s", containerName, podIP));
             return podIP;
-        }
-        else {
+        } else {
             return null;
         }
     }
@@ -480,8 +486,7 @@ public class KubernetesContainerClient implements ContainerClient {
         Pod pod = client.pods().withName(container.getContainerName()).get();
         if (pod == null) {
             return false;
-        }
-        else {
+        } else {
             return pod.getStatus().getConditions().stream()
                     .filter(condition -> condition.getType().equals("Ready"))
                     .map(condition -> condition.getStatus().equals("True"))
@@ -495,17 +500,16 @@ public class KubernetesContainerClient implements ContainerClient {
         if (pod == null) {
             logger.info("Container {} has no pod - terminal.", container);
             return true;
-        }
-        else {
-              List<ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
-              Optional<ContainerStateTerminated> terminated = containerStatuses.stream()
-                      .flatMap(status -> Optional.ofNullable(status.getState()).map(Stream::of).orElse(Stream.empty()))
-                      .flatMap(state -> Optional.ofNullable(state.getTerminated()).map(Stream::of).orElse(Stream.empty()))
-                      .findFirst();
+        } else {
+            List<ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
+            Optional<ContainerStateTerminated> terminated = containerStatuses.stream()
+                    .flatMap(status -> Optional.ofNullable(status.getState()).map(Stream::of).orElse(Stream.empty()))
+                    .flatMap(state -> Optional.ofNullable(state.getTerminated()).map(Stream::of).orElse(Stream.empty()))
+                    .findFirst();
 
-              terminated.ifPresent(state -> logger.info("Container {} is {} - terminal.", container, state));
+            terminated.ifPresent(state -> logger.info("Container {} is {} - terminal.", container, state));
 
-              return terminated.isPresent();
+            return terminated.isPresent();
         }
     }
 
@@ -544,8 +548,7 @@ public class KubernetesContainerClient implements ContainerClient {
             Integer noVncPortInt = Integer.decode(noVncPort.get().getValue());
 
             registration.setNoVncPort(noVncPortInt);
-        }
-        else {
+        } else {
             logger.warn("{} Couldn't find NOVNC_PORT, live preview will not work.", containerId);
         }
 
@@ -596,9 +599,9 @@ public class KubernetesContainerClient implements ContainerClient {
             boolean hasErrors = stderr.size() > 0;
             if (!isClosed && hasErrors) {
                 logger.error(String.format("%s Copy files command failed with:\n\tcommand: %s\n\t stderr:\n%s",
-                                        containerId,
-                                        Arrays.toString(command),
-                                        stderr.toString()));
+                        containerId,
+                        Arrays.toString(command),
+                        stderr.toString()));
                 this.execWatch.close();
             }
         }
@@ -606,9 +609,8 @@ public class KubernetesContainerClient implements ContainerClient {
         public void waitForInputStreamToConnect() {
             try {
                 this.openLatch.await();
-            }
-            catch (InterruptedException e) {
-                logger.error( String.format("%s Failed to execute command %s", containerId, Arrays.toString(command)), e);
+            } catch (InterruptedException e) {
+                logger.error(String.format("%s Failed to execute command %s", containerId, Arrays.toString(command)), e);
             }
         }
     }
@@ -653,57 +655,60 @@ public class KubernetesContainerClient implements ContainerClient {
 
     public static DoneablePod createDoneablePodDefaultImpl(PodConfiguration config) {
 
+        logger.info("Creating pod: {}", (config));
+
         PodFluent.SpecNested<DoneablePod> doneablePodSpecNested = config.getClient().pods()
                 .createNew()
                 .withNewMetadata()
-                    .withGenerateName(config.getContainerIdPrefix())
-                    .addToLabels(config.getLabels())
-                    .withOwnerReferences(config.getOwnerRef())
+                .withGenerateName(config.getContainerIdPrefix())
+                .addToLabels(config.getLabels())
+                .withOwnerReferences(config.getOwnerRef())
                 .endMetadata()
                 .withNewSpec()
-                    .withNodeSelector(config.getNodeSelector())
-                    .withTolerations(config.getTolerations())
-                    .withSecurityContext(config.getPodSecurityContext())
-                    // Add a memory volume that we can use for /dev/shm
-                    .addNewVolume()
-                        .withName("dshm")
-                        .withNewEmptyDir()
-                            .withMedium("Memory")
-                        .endEmptyDir()
-                    .endVolume()
-                    .withServiceAccount(config.getServiceAccount())
-                    .addNewContainer()
-                        .withName("selenium-node")
-                        .withImage(config.getImage())
-                        .withImagePullPolicy(config.getImagePullPolicy())
-                        .addAllToEnv(config.getEnvVars())
-                        .withSecurityContext(config.getContainerSecurityContext())
-                        .addNewVolumeMount()
-                            .withName("dshm")
-                            .withMountPath("/dev/shm")
-                        .endVolumeMount()
-                        .withNewResources()
-                            .addToLimits(config.getPodLimits())
-                            .addToRequests(config.getPodRequests())
-                        .endResources()
-                        // Add a readiness health check so that we can know when the selenium pod is ready to accept requests
-                        // so then we can initiate a registration.
-                        .withNewReadinessProbe()
-                            .withNewExec()
-                                .addToCommand(new String[] {"/bin/sh", "-c", "http_proxy=\"\" curl -s http://`hostname -i`:"
-                                        + config.getNodePort() + "/wd/hub/status | jq .value.ready | grep true"})
-                            .endExec()
-                            .withInitialDelaySeconds(5)
-                            .withFailureThreshold(60)
-                            .withPeriodSeconds(1)
-                            .withTimeoutSeconds(5)
-                            .withSuccessThreshold(1)
-                        .endReadinessProbe()
-                    .endContainer()
-                    .withRestartPolicy("Never")
-                    .withImagePullSecrets(config.getImagePullSecrets());
+                .withNodeSelector(config.getNodeSelector())
+                .withTolerations(config.getTolerations())
+                .withSecurityContext(config.getPodSecurityContext())
+                // Add a memory volume that we can use for /dev/shm
+                .addNewVolume()
+                .withName("dshm")
+                .withNewEmptyDir()
+                .withMedium("Memory")
+                .endEmptyDir()
+                .endVolume()
+                .withServiceAccount(config.getServiceAccount())
+                .addNewContainer()
 
-        if(config.getSchedulerName() != null) {
+                .withName("selenium-node")
+                .withImage(config.getImage())
+                .withImagePullPolicy(config.getImagePullPolicy())
+                .addAllToEnv(config.getEnvVars())
+                .withSecurityContext(config.getContainerSecurityContext())
+                .addNewVolumeMount()
+                .withName("dshm")
+                .withMountPath("/dev/shm")
+                .endVolumeMount()
+                .withNewResources()
+                .addToLimits(config.getPodLimits())
+                .addToRequests(config.getPodRequests())
+                .endResources()
+                // Add a readiness health check so that we can know when the selenium pod is ready to accept requests
+                // so then we can initiate a registration.
+                .withNewReadinessProbe()
+                .withNewExec()
+                .addToCommand(new String[]{"/bin/sh", "-c", "http_proxy=\"\" curl -s http://`hostname -i`:"
+                        + config.getNodePort() + "/wd/hub/status | jq .value.ready | grep true"})
+                .endExec()
+                .withInitialDelaySeconds(5)
+                .withFailureThreshold(60)
+                .withPeriodSeconds(1)
+                .withTimeoutSeconds(5)
+                .withSuccessThreshold(1)
+                .endReadinessProbe()
+                .endContainer()
+                .withRestartPolicy("Never")
+                .withImagePullSecrets(config.getImagePullSecrets());
+
+        if (config.getSchedulerName() != null) {
             doneablePodSpecNested = doneablePodSpecNested.withSchedulerName(config.getSchedulerName());
         }
 
@@ -711,14 +716,15 @@ public class KubernetesContainerClient implements ContainerClient {
 
         // Add the shared folders if available
         for (Map.Entry<VolumeMount, Volume> entry : config.getMountedSharedFoldersMap().entrySet()) {
+            logger.info("Mounting {}", entry);
             doneablePod = doneablePod
                     .editSpec()
-                        .addNewVolumeLike(entry.getValue())
+                    .addNewVolumeLike(entry.getValue())
                     .and()
-                        .editFirstContainer()
-                            .addNewVolumeMountLike(entry.getKey())
-                            .endVolumeMount()
-                        .endContainer()
+                    .editFirstContainer()
+                    .addNewVolumeMountLike(entry.getKey())
+                    .endVolumeMount()
+                    .endContainer()
                     .endSpec();
         }
 
@@ -726,8 +732,8 @@ public class KubernetesContainerClient implements ContainerClient {
         for (HostAlias hostAlias : config.getHostAliases()) {
             doneablePod = doneablePod
                     .editSpec()
-                        .addNewHostAliasLike(hostAlias)
-                        .endHostAlias()
+                    .addNewHostAliasLike(hostAlias)
+                    .endHostAlias()
                     .endSpec();
         }
 
