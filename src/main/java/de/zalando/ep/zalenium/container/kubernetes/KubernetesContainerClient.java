@@ -402,7 +402,7 @@ public class KubernetesContainerClient implements ContainerClient {
                 .collect(Collectors.toList());
 
         if (nodeSharedArtifactsMount != null) {
-            String workDir = nodeSharedArtifactsMount.getMountPath() + "/" + UUID.randomUUID().toString() ;
+            String workDir = nodeSharedArtifactsMount.getMountPath() + "/" + UUID.randomUUID().toString();
             flattenedEnvVars.add(new EnvVar("SHARED_DIR", workDir, null));
             String videoDir = workDir + "/";
             flattenedEnvVars.add(new EnvVar("VIDEOS_DIR", videoDir, null));
@@ -656,17 +656,31 @@ public class KubernetesContainerClient implements ContainerClient {
 
         logger.info("Creating pod: {}", (config));
 
+//        Create init containers that will create folder if they don't exist
+        List<Container> initContainers = Stream.of("SHARED_DIR", "VIDEOS_DIR", "LOGS_DIR")
+                .map(dirName -> {
+                    Container mkdirContainer = new Container();
+                    mkdirContainer.setCommand(Arrays.asList("mkdir", "-p", "$" + dirName));
+                    mkdirContainer.setImage("busybox:1.28");
+
+                    return mkdirContainer;
+                })
+                .collect(Collectors.toList());
+
         PodFluent.SpecNested<DoneablePod> doneablePodSpecNested = config.getClient().pods()
                 .createNew()
+
                 .withNewMetadata()
                 .withGenerateName(config.getContainerIdPrefix())
                 .addToLabels(config.getLabels())
                 .withOwnerReferences(config.getOwnerRef())
                 .endMetadata()
+
                 .withNewSpec()
                 .withNodeSelector(config.getNodeSelector())
                 .withTolerations(config.getTolerations())
                 .withSecurityContext(config.getPodSecurityContext())
+
                 // Add a memory volume that we can use for /dev/shm
                 .addNewVolume()
                 .withName("dshm")
@@ -674,9 +688,8 @@ public class KubernetesContainerClient implements ContainerClient {
                 .withMedium("Memory")
                 .endEmptyDir()
                 .endVolume()
-                .withServiceAccount(config.getServiceAccount())
-                .addNewContainer()
 
+                .addNewContainer()
                 .withName("selenium-node")
                 .withImage(config.getImage())
                 .withImagePullPolicy(config.getImagePullPolicy())
@@ -704,6 +717,10 @@ public class KubernetesContainerClient implements ContainerClient {
                 .withSuccessThreshold(1)
                 .endReadinessProbe()
                 .endContainer()
+
+                .withInitContainers(initContainers)
+
+                .withServiceAccount(config.getServiceAccount())
                 .withRestartPolicy("Never")
                 .withImagePullSecrets(config.getImagePullSecrets());
 
