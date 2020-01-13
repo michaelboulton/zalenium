@@ -96,7 +96,6 @@ public class KubernetesContainerClient implements ContainerClient {
 
             appName = zaleniumPod.getMetadata().getLabels().get("app");
 
-
             appLabelMap = new HashMap<>();
             appLabelMap.put("app", appName);
 
@@ -116,7 +115,7 @@ public class KubernetesContainerClient implements ContainerClient {
             buildResourceMaps();
 
         } catch (Exception e) {
-            logger.error("Error initialising Kubernetes support. {}", e);
+            logger.error("Error initialising Kubernetes support", e);
             throw e;
         }
 
