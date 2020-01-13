@@ -402,7 +402,7 @@ public class KubernetesContainerClient implements ContainerClient {
                 .collect(Collectors.toList());
 
         if (nodeSharedArtifactsMount != null) {
-            String workDir = nodeSharedArtifactsMount.getMountPath() ;
+            String workDir = nodeSharedArtifactsMount.getMountPath() + "/" + UUID.randomUUID().toString() ;
             flattenedEnvVars.add(new EnvVar("SHARED_DIR", workDir, null));
             String videoDir = workDir + "/";
             flattenedEnvVars.add(new EnvVar("VIDEOS_DIR", videoDir, null));
