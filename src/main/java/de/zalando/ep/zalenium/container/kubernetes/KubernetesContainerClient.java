@@ -662,7 +662,7 @@ public class KubernetesContainerClient implements ContainerClient {
                     Container mkdirContainer = new Container();
                     mkdirContainer.setCommand(Arrays.asList("mkdir", "-p", "$" + dirName));
                     mkdirContainer.setImage("busybox:1.28");
-                    mkdirContainer.setName("mkdir-" + dirName);
+                    mkdirContainer.setName("mkdir-" + dirName.replace("_","-2").toLowerCase());
 
                     return mkdirContainer;
                 })
