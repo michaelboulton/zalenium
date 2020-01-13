@@ -404,9 +404,9 @@ public class KubernetesContainerClient implements ContainerClient {
         if (nodeSharedArtifactsMount != null) {
             String workDir = nodeSharedArtifactsMount.getMountPath() + "/" + UUID.randomUUID().toString();
             flattenedEnvVars.add(new EnvVar("SHARED_DIR", workDir, null));
-            String videoDir = workDir + "/";
+            String videoDir = workDir;
             flattenedEnvVars.add(new EnvVar("VIDEOS_DIR", videoDir, null));
-            String logDir = workDir + "/";
+            String logDir = workDir;
             flattenedEnvVars.add(new EnvVar("LOGS_DIR", logDir, null));
             if (!Files.exists(Paths.get(workDir))) {
                 Objects.requireNonNull(createDirectories(workDir));
@@ -660,9 +660,12 @@ public class KubernetesContainerClient implements ContainerClient {
         List<Container> initContainers = Stream.of("SHARED_DIR", "VIDEOS_DIR", "LOGS_DIR")
                 .map(dirName -> {
                     Container mkdirContainer = new Container();
-                    mkdirContainer.setCommand(Arrays.asList("mkdir", "-p", "$" + dirName));
-                    mkdirContainer.setImage("busybox:1.28");
-                    mkdirContainer.setName("mkdir-" + dirName.replace("_","-2").toLowerCase());
+                    mkdirContainer.setCommand(Arrays.asList("mkdir", "-v", "-p", String.format("$(%s)", dirName)));
+                    mkdirContainer.setImage(config.getImage());
+                    mkdirContainer.setName("mkdir-" + dirName.replace("_", "-2").toLowerCase());
+                    mkdirContainer.setEnv(config.getEnvVars());
+
+                    mkdirContainer.setVolumeMounts(new ArrayList<>(config.getMountedSharedFoldersMap().keySet()));
 
                     return mkdirContainer;
                 })
@@ -722,7 +725,7 @@ public class KubernetesContainerClient implements ContainerClient {
                 .withInitContainers(initContainers)
 
                 .withServiceAccount(config.getServiceAccount())
-                .withRestartPolicy("Never")
+                .withRestartPolicy("Always")
                 .withImagePullSecrets(config.getImagePullSecrets());
 
         if (config.getSchedulerName() != null) {
