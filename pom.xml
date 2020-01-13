@@ -293,7 +293,7 @@
                                 <resource>
                                     <directory>scripts</directory>
                                     <filtering>true</filtering>
-                                </resource>`
+                                </resource>
                                 <resource>
                                     <directory>docker</directory>
                                     <filtering>true</filtering>
