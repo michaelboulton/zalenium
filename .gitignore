@@ -15,3 +15,8 @@ bin/
 .classpath
 .settings
 .vscode
+
+
+/build/
+.gradle
+lombok.config
