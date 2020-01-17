@@ -11,6 +11,9 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.ByteArrayOutputStream;
 
+/**
+ * Directly copies files form the container by accessing the Kubernetes API
+ */
 @AllArgsConstructor
 public class CommandCopier implements PodFileCopy {
     private KubernetesClient client;

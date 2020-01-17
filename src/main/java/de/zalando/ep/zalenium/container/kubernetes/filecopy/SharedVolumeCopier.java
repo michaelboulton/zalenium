@@ -11,6 +11,9 @@ import java.util.Map;
 import java.util.Optional;
 
 
+/**
+ * Assume folders are shard and copy files form there
+ */
 @AllArgsConstructor
 public class SharedVolumeCopier implements PodFileCopy {
 

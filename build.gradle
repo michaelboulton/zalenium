@@ -95,7 +95,7 @@ import com.bmuschko.gradle.docker.tasks.image.DockerPushImage
 task buildImage(type: DockerBuildImage) {
     dependsOn(targetCopy)
 
-    images = ["michaelboulton2/zalenium:" + (project.ext.properties.get("IMAGE_TAG") ?: "28w")]
+    images = ["michaelboulton2/zalenium:" + (project.ext.properties.get("IMAGE_TAG") ?: "29w")]
     inputDir = file(project.buildDir)
 }
 

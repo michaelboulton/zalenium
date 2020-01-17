@@ -22,14 +22,6 @@ public final class CopyStrategy {
             public PodFileCopy construct(KubernetesClient client) {
                 return new SharedVolumeCopier(client);
             }
-        },
-        FROM_REMOTE {
-            @Override
-            public PodFileCopy construct(KubernetesClient client) {
-//                TODO: implement
-                logger.warn("Using default volume copier");
-                return new SharedVolumeCopier(client);
-            }
         };
 
         public abstract PodFileCopy construct(KubernetesClient client);
@@ -50,9 +42,6 @@ public final class CopyStrategy {
                     break;
                 case "VOLUME":
                     strategy = Strategy.FROM_VOLUMES;
-                    break;
-                case "REMOTE":
-                    strategy = Strategy.FROM_REMOTE;
                     break;
                 default:
                     logger.warn("Unknown setting {}, using shared volumes", envVariable);
