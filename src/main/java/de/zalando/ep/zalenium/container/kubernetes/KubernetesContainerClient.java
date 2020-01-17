@@ -4,27 +4,22 @@ import de.zalando.ep.zalenium.container.ContainerClient;
 import de.zalando.ep.zalenium.container.ContainerClientRegistration;
 import de.zalando.ep.zalenium.container.ContainerCreationStatus;
 import de.zalando.ep.zalenium.container.kubernetes.filecopy.CommandCopier;
+import de.zalando.ep.zalenium.container.kubernetes.filecopy.CopyStrategy;
 import de.zalando.ep.zalenium.container.kubernetes.filecopy.PodFileCopy;
 import de.zalando.ep.zalenium.container.kubernetes.filecopy.SharedVolumeCopier;
 import de.zalando.ep.zalenium.streams.InputStreamGroupIterator;
-import de.zalando.ep.zalenium.streams.MapInputStreamAdapter;
-import de.zalando.ep.zalenium.streams.TarInputStreamGroupWrapper;
 import de.zalando.ep.zalenium.util.Environment;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import okhttp3.Response;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.lang.StringUtils;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URL;
@@ -35,11 +30,12 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static de.zalando.ep.zalenium.container.kubernetes.filecopy.CopyStrategy.getCopier;
 
 public class KubernetesContainerClient implements ContainerClient {
 
@@ -59,6 +55,8 @@ public class KubernetesContainerClient implements ContainerClient {
     private String zaleniumAppName;
 
     private Pod zaleniumPod;
+
+    private PodFileCopy copier;
 
     private Map<String, String> createdByZaleniumMap;
     private Map<String, String> appLabelMap;
@@ -87,6 +85,8 @@ public class KubernetesContainerClient implements ContainerClient {
                                      KubernetesClient client) {
         logger.info("Initialising Kubernetes support");
         String appName;
+
+        copier = getCopier(environment, client);
 
         this.environment = environment;
         this.createDoneablePod = createDoneablePod;
@@ -283,15 +283,6 @@ public class KubernetesContainerClient implements ContainerClient {
      */
     @Override
     public InputStreamGroupIterator copyFiles(String containerId, String folderName) {
-        PodFileCopy copier;
-        if (nodeSharedArtifactsMount != null) {
-//            return copyFilesFromSharedVolume(containerId, folderName);
-            copier = new SharedVolumeCopier(client);
-        } else {
-//            return copyFilesThroughCommands(containerId, folderName);
-            copier = new CommandCopier(client);
-        }
-
         return copier.copyFiles(containerId, folderName);
     }
 
