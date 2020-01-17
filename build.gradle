@@ -6,12 +6,13 @@ plugins {
     id 'java'
     id 'maven-publish'
     id "io.freefair.lombok" version "4.1.6"
+    id 'com.bmuschko.docker-remote-api' version '6.1.2'
 }
 
 repositories {
     mavenLocal()
     maven {
-        url = 'http://repo.maven.apache.org/maven2'
+        url = 'https://repo.maven.apache.org/maven2'
     }
 }
 
@@ -51,13 +52,13 @@ version = '3.141.59x-SNAPSHOT'
 description = 'Zalenium'
 sourceCompatibility = '1.8'
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            from(components.java)
-        }
-    }
-}
+//publishing {
+//    publications {
+//        maven(MavenPublication) {
+//            from(components.java)
+//        }
+//    }
+//}
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
@@ -66,4 +67,32 @@ tasks.withType(JavaCompile) {
 test {
     useTestNG()
     ignoreFailures(true)
+}
+
+task targetCopy(type: Copy) {
+    dependsOn("build", "jar")
+
+    from("scripts", "docker", "dashboard", sourceSets.main.resources)
+    into(project.buildDir)
+
+    doLast {
+        project.buildDir.eachFile { file ->
+            if (file.isFile() && file.text.contains("finalName")) {
+                def fileText = file.text
+                fileText = fileText.replaceAll(('\\$\\{project.build.finalName}'), "${project.name}-${project.version}")
+                file.write(fileText)
+            }
+
+        }
+    }
+}
+
+
+import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+
+task buildImage(type: DockerBuildImage) {
+    dependsOn(targetCopy)
+
+    imageId = "michaelboulton2/zalenium:27w"
+    inputDir = file(project.buildDir)
 }

@@ -38,7 +38,8 @@ SEL_BROWSER_TIMEOUT_SECS=${SEL_BROWSER_TIMEOUT_SECS:-16000}
 
 HOST_UID=${HOST_UID:-1000}
 HOST_GID=${HOST_GID:-1000}
-GA_TRACKING_ID="UA-88441352-3"
+GA_TRACKING_ID=""
+GA_TRACKING_ID=""
 GA_ENDPOINT=https://www.google-analytics.com/collect
 GA_API_VERSION="1"
 
@@ -387,8 +388,8 @@ StartUp()
             exit 5
         fi
     fi
-    
-    
+
+
     if [ "$CBT_ENABLED" = true ]; then
         CBT_USERNAME="${CBT_USERNAME:=abc}"
         CBT_AUTHKEY="${CBT_AUTHKEY:=abc}"
@@ -522,7 +523,7 @@ StartUp()
     ${DEBUG_FLAG} &
 
     echo $! > ${PID_PATH_SELENIUM}
-    
+
     if ! timeout --foreground "1m" bash -c WaitSeleniumHub; then
         echo "GridLauncher failed to start after 1 minute, failing..."
         curl "http://localhost:4444${CONTEXT_PATH}/wd/hub/status"
@@ -619,7 +620,7 @@ StartUp()
     else
         echo "TestingBot not enabled..."
     fi
-    
+
     if [ "$CBT_ENABLED" = true ]; then
         echo "Starting CBT node..."
         java -Dlogback.loglevel=${DEBUG_MODE} -Dlogback.appender=${LOGBACK_APPENDER} \
@@ -790,7 +791,7 @@ ShutDown()
             rm ${PID_PATH_TESTINGBOT_NODE}
         fi
     fi
-    
+
     if [ -f ${PID_PATH_CBT_NODE} ];
     then
         echo "Stopping CBT node..."
@@ -858,7 +859,7 @@ ShutDown()
             rm ${PID_PATH_TESTINGBOT_TUNNEL}
         fi
     fi
-    
+
     if [ -f ${PID_PATH_CBT_TUNNEL} ];
     then
         echo "Stopping CBT tunnel..."

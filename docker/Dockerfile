@@ -371,8 +371,6 @@ COPY css/ /home/seluser/css/
 COPY js/ /home/seluser/js/
 COPY img/ /home/seluser/img/
 COPY zalenium.sh \
- LICENSE.md \
- Analytics.md \
  start-browserstack.sh \
  wait-browserstack.sh \
  start-saucelabs.sh \
@@ -389,7 +387,6 @@ COPY zalenium.sh \
  logging_debug.properties \
  logback.xml \
  /home/seluser/
-COPY scm-source.json /
 
 #-----------------#
 # Fix perms again #
@@ -418,7 +415,7 @@ RUN sudo chgrp -R 0 /home/seluser && \
     sudo chmod -R g=u /home/seluser && \
     sudo chmod -R u+x /home/seluser
 
-COPY ${ZAL_VER}.jar /home/seluser/${ZAL_VER}.jar
+COPY libs/${ZAL_VER}.jar /home/seluser/${ZAL_VER}.jar
 
 # IMPORTANT: Using the string form `CMD "entry.sh"` without
 # brackets [] causes Docker to run your process
