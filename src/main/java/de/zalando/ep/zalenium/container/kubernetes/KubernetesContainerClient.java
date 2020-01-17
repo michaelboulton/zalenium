@@ -3,6 +3,9 @@ package de.zalando.ep.zalenium.container.kubernetes;
 import de.zalando.ep.zalenium.container.ContainerClient;
 import de.zalando.ep.zalenium.container.ContainerClientRegistration;
 import de.zalando.ep.zalenium.container.ContainerCreationStatus;
+import de.zalando.ep.zalenium.container.kubernetes.filecopy.CommandCopier;
+import de.zalando.ep.zalenium.container.kubernetes.filecopy.PodFileCopy;
+import de.zalando.ep.zalenium.container.kubernetes.filecopy.SharedVolumeCopier;
 import de.zalando.ep.zalenium.streams.InputStreamGroupIterator;
 import de.zalando.ep.zalenium.streams.MapInputStreamAdapter;
 import de.zalando.ep.zalenium.streams.TarInputStreamGroupWrapper;
@@ -280,57 +283,16 @@ public class KubernetesContainerClient implements ContainerClient {
      */
     @Override
     public InputStreamGroupIterator copyFiles(String containerId, String folderName) {
+        PodFileCopy copier;
         if (nodeSharedArtifactsMount != null) {
-            return copyFilesFromSharedVolume(containerId, folderName);
+//            return copyFilesFromSharedVolume(containerId, folderName);
+            copier = new SharedVolumeCopier(client);
         } else {
-            return copyFilesThroughCommands(containerId, folderName);
-        }
-    }
-
-    private InputStreamGroupIterator copyFilesFromSharedVolume(String containerId, String folderName) {
-        Map<String, File> streams = new HashMap<>();
-
-        Optional<String> oWorkDir = client.pods().withName(containerId).get()
-                .getSpec().getContainers().get(0).getEnv()
-                .stream()
-                .filter(env -> env.getName().equals("SHARED_DIR"))
-                .map(env -> env.getValue())
-                .findFirst();
-
-        if (!oWorkDir.isPresent()) {
-            throw new RuntimeException("SHARED_DIR not present in pod" + containerId);
-        }
-        String workDir = oWorkDir.get();
-
-        File dir = new File(workDir + folderName);
-        File[] directoryListing = dir.listFiles();
-        for (File f : directoryListing != null ? directoryListing : new File[0]) {
-            if (f.getName().endsWith(".log") || f.getName().endsWith(".mp4")) {
-                streams.put(f.getName(), f);
-            }
+//            return copyFilesThroughCommands(containerId, folderName);
+            copier = new CommandCopier(client);
         }
 
-        return new MapInputStreamAdapter(streams);
-    }
-
-    @NotNull
-    @Contract("_, _ -> new")
-    private InputStreamGroupIterator copyFilesThroughCommands(String containerId, String folderName) {
-        ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-        String[] command = new String[]{"tar", "-C", folderName, "-c", "."};
-        CopyFilesExecListener listener = new CopyFilesExecListener(stderr, command, containerId);
-        ExecWatch exec = client.pods().withName(containerId).redirectingOutput().writingError(stderr).usingListener(listener).exec(command);
-
-        // FIXME: This is a bit dodgy, but we need the listener to be able to close the ExecWatch in failure conditions,
-        // because it doesn't cleanup properly and deadlocks.
-        // Needs bugs fixed inside kubernetes-client.
-        listener.setExecWatch(exec);
-
-        // When zalenium is under high load sometimes the stdout isn't connected by the time we try to read from it.
-        // Let's wait until it is connected before proceeding.
-        listener.waitForInputStreamToConnect();
-
-        return new TarInputStreamGroupWrapper(new TarArchiveInputStream(exec.getOutput()));
+        return copier.copyFiles(containerId, folderName);
     }
 
     @Override
@@ -559,63 +521,6 @@ public class KubernetesContainerClient implements ContainerClient {
         registration.setContainerId(containerId);
 
         return registration;
-    }
-
-    @SuppressWarnings("WeakerAccess")
-    private final class CopyFilesExecListener implements ExecListener {
-        private AtomicBoolean closedResource = new AtomicBoolean(false);
-        private ExecWatch execWatch;
-        private String containerId;
-        private ByteArrayOutputStream stderr;
-        private String[] command;
-        private final CountDownLatch openLatch = new CountDownLatch(1);
-
-        public CopyFilesExecListener(ByteArrayOutputStream stderr, String[] command, String containerId) {
-            super();
-            this.stderr = stderr;
-            this.command = command;
-            this.containerId = containerId;
-        }
-
-        public void setExecWatch(ExecWatch execWatch) {
-            this.execWatch = execWatch;
-        }
-
-        @Override
-        public void onOpen(Response response) {
-            openLatch.countDown();
-        }
-
-        @Override
-        public void onFailure(Throwable t,
-                              Response response) {
-            logger.error(String.format("%s Failed to execute command %s", containerId, Arrays.toString(command)), t);
-        }
-
-        @Override
-        public void onClose(int code,
-                            String reason) {
-
-
-            // Dirty hack to workaround the fact that ExecWatch doesn't automatically close any resources
-            boolean isClosed = closedResource.getAndSet(true);
-            boolean hasErrors = stderr.size() > 0;
-            if (!isClosed && hasErrors) {
-                logger.error(String.format("%s Copy files command failed with:\n\tcommand: %s\n\t stderr:\n%s",
-                        containerId,
-                        Arrays.toString(command),
-                        stderr.toString()));
-                this.execWatch.close();
-            }
-        }
-
-        public void waitForInputStreamToConnect() {
-            try {
-                this.openLatch.await();
-            } catch (InterruptedException e) {
-                logger.error(String.format("%s Failed to execute command %s", containerId, Arrays.toString(command)), e);
-            }
-        }
     }
 
     private enum Resources {
