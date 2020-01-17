@@ -43,6 +43,7 @@ dependencies {
     testImplementation 'org.awaitility:awaitility:3.1.2'
     compileOnly 'org.eclipse.jetty:jetty-server:9.4.12.v20180830'
     compileOnly 'org.projectlombok:lombok:1.18.10'
+    compileOnly group: 'org.jetbrains', name: 'annotations', version: '16.0.1'
 
     annotationProcessor 'org.projectlombok:lombok:1.18.10'
 }
@@ -89,10 +90,15 @@ task targetCopy(type: Copy) {
 
 
 import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+import com.bmuschko.gradle.docker.tasks.image.DockerPushImage
 
 task buildImage(type: DockerBuildImage) {
     dependsOn(targetCopy)
 
-    imageId = "michaelboulton2/zalenium:27w"
+    images = ["michaelboulton2/zalenium:" + (project.ext.properties.get("IMAGE_TAG") ?: "28w")]
     inputDir = file(project.buildDir)
+}
+
+task pushImage(type: DockerPushImage) {
+    images = [buildImage.imageId]
 }

@@ -14,6 +14,8 @@ import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import okhttp3.Response;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.lang.StringUtils;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -311,6 +313,8 @@ public class KubernetesContainerClient implements ContainerClient {
         return new MapInputStreamAdapter(streams);
     }
 
+    @NotNull
+    @Contract("_, _ -> new")
     private InputStreamGroupIterator copyFilesThroughCommands(String containerId, String folderName) {
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         String[] command = new String[]{"tar", "-C", folderName, "-c", "."};
