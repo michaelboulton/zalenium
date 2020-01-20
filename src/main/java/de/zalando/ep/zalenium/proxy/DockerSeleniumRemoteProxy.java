@@ -20,6 +20,8 @@ import de.zalando.ep.zalenium.streams.InputStreamGroupIterator;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.openqa.grid.common.RegistrationRequest;
 import org.openqa.grid.common.exception.RemoteException;
 import org.openqa.grid.common.exception.RemoteNotReachableException;
@@ -243,6 +245,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         return null;
     }
 
+    @Nullable
     private TestSession createNewSession(Map<String, Object> requestedCapability) {
         String currentName = configureThreadName();
         TestSession newSession = super.getNewSession(requestedCapability);
@@ -316,15 +319,14 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
                         String message = cookie.get("value").getAsString();
                         if (ContainerFactory.getIsKubernetes().get()) {
                             // https://github.com/zalando/zalenium/issues/763
-                            message = message.replace("#","");
+                            message = message.replace("#", "");
                         }
                         String messageCommand = String.format(" 'Zalenium', '%s', --icon=/home/seluser/images/message.png",
                                 message);
                         processContainerAction(DockerSeleniumContainerAction.CLEAN_NOTIFICATION, getContainerId());
                         processContainerAction(DockerSeleniumContainerAction.SEND_NOTIFICATION, messageCommand,
                                 getContainerId());
-                    }
-                    else if(CommonProxyUtilities.metadataCookieName.equalsIgnoreCase(cookieName)) {
+                    } else if (CommonProxyUtilities.metadataCookieName.equalsIgnoreCase(cookieName)) {
                         JsonParser jsonParser = new JsonParser();
                         JsonObject metadata = jsonParser.parse(cookie.get("value").getAsString()).getAsJsonObject();
                         testInformation.setMetadata(metadata);
@@ -360,12 +362,12 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         setThreadName(currentName);
     }
 
-    private void ensureTestInformation(TestSession session) {
+    private void ensureTestInformation(@NotNull TestSession session) {
         String seleniumSessionId = session.getExternalKey() != null ?
                 session.getExternalKey().getKey() :
                 session.getInternalKey();
 
-        if(testInformation != null && testInformation.getSeleniumSessionId().equals(seleniumSessionId)) {
+        if (testInformation != null && testInformation.getSeleniumSessionId().equals(seleniumSessionId)) {
             return;
         }
         Map<String, Object> requestedCapability = session.getRequestedCapabilities();
@@ -418,8 +420,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
                 if (isTestSessionLimitReached()) {
                     LOGGER.info("Session {} completed. Node should shutdown soon...", session.getInternalKey());
                     cleanupNode(true);
-                }
-                else {
+                } else {
                     LOGGER.info("Session {} completed. Cleaning up node for reuse, used {} of max {} sessions",
                             session.getInternalKey(), getAmountOfExecutedTests(), maxTestSessions);
                     cleanupNode(false);
@@ -454,7 +455,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         amountOfExecutedTests = maxTestSessions;
     }
 
-    private String getCapability(Map<String, Object> requestedCapability, String capabilityName, String defaultValue) {
+    private String getCapability(@NotNull Map<String, Object> requestedCapability, String capabilityName, String defaultValue) {
         return Optional.ofNullable(requestedCapability.get(capabilityName)).orElse(defaultValue).toString();
     }
 
@@ -625,17 +626,22 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
     void processContainerAction(final DockerSeleniumContainerAction action, final String commandParameters,
                                 final String containerId) {
         if (DockerSeleniumContainerAction.TRANSFER_LOGS != action) {
-            final String[] command = { "bash", "-c", action.getContainerAction().concat(commandParameters)};
+            final String[] command = {"bash", "-c", action.getContainerAction().concat(commandParameters)};
             containerClient.executeCommand(containerId, command, action.isWaitForExecution());
         }
 
         if (keepVideoAndLogs()) {
+            LOGGER.info("Copying video and log for test");
             if (DockerSeleniumContainerAction.STOP_RECORDING == action) {
+                LOGGER.info("Copying videos");
                 copyVideos(containerId);
             }
             if (DockerSeleniumContainerAction.TRANSFER_LOGS == action) {
+                LOGGER.info("Copying logs");
                 copyLogs(containerId);
             }
+        } else {
+            LOGGER.info("Ignoring results of test");
         }
     }
 
@@ -643,6 +649,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
     void copyVideos(final String containerId) {
         if (testInformation == null || StringUtils.isEmpty(containerId)) {
             // No tests run or container has been removed, nothing to copy and nothing to update.
+            LOGGER.info("No videos to copy for {}", containerId);
             return;
         }
         String currentName = configureThreadName();
@@ -661,13 +668,13 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
                 Files.copy(entry.get(), videoFile);
                 CommonProxyUtilities.setFilePermissions(videoFile);
                 videoWasCopied = true;
-                LOGGER.debug("Video file copied to: {}/{}", testInformation.getVideoFolderPath(), testInformation.getFileName());
+                LOGGER.info("Video file copied to: {}/{}", testInformation.getVideoFolderPath(), testInformation.getFileName());
             }
         } catch (IOException e) {
             // This error happens in k8s, but the file is ok, nevertheless the size is not accurate
             boolean isPipeClosed = e.getMessage().toLowerCase().contains("pipe closed");
             if (ContainerFactory.getIsKubernetes().get() && isPipeClosed) {
-                LOGGER.debug("Video file copied to: {}/{}", testInformation.getVideoFolderPath(), testInformation.getFileName());
+                LOGGER.info("Video file copied to: {}/{}", testInformation.getVideoFolderPath(), testInformation.getFileName());
             } else {
                 LOGGER.warn("Error while copying the video", e);
             }
@@ -684,6 +691,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
     void copyLogs(final String containerId) {
         if (SwarmUtilities.isSwarmActive()) {
             // Disabling logs in swarm mode
+            LOGGER.info("No logs to copy for {}", containerId);
             return;
         }
 
@@ -725,7 +733,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         // A node should not be marked as stale while doing cleanup jobs. SANITY: The upper limit of cleanup jobs is 3 minutes.
         long timeSinceCleanupStarted = System.currentTimeMillis() - cleanupStartedTime;
 
-        if(this.cleaningUp && timeSinceCleanupStarted > (getProxyCleanUpTimeout() * 1000L)) {
+        if (this.cleaningUp && timeSinceCleanupStarted > (getProxyCleanUpTimeout() * 1000L)) {
             LOGGER.error("Proxy has been cleaning up {} which is longer than {}. The Grid seems to be overloaded. " +
                             "You can extend this timeout through the ZALENIUM_PROXY_CLEANUP_TIMEOUT env var.",
                     timeSinceCleanupStarted, (getProxyCleanUpTimeout() * 1000));
@@ -793,8 +801,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         if (shutdownType == ShutdownType.MAX_TEST_SESSIONS_REACHED) {
             shutdownReason = String.format(
                     "Marking the node as down because it was stopped after %s tests.", maxTestSessions);
-        }
-        else {
+        } else {
             shutdownReason = "Marking the node as down because it was idle after the tests had finished.";
         }
 
@@ -814,7 +821,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
     }
 
     @Override
-    public void onEvent(List<RemoteException> events, RemoteException lastInserted) {
+    public void onEvent(@NotNull List<RemoteException> events, RemoteException lastInserted) {
         List<RemoteException> remoteNotReachableEvents = events.stream()
                 .filter(event -> event instanceof RemoteNotReachableException)
                 .collect(Collectors.toList());

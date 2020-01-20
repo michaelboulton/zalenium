@@ -53,6 +53,7 @@ dependencies {
 
 group = 'de.zalando.ep'
 version = '3.141.59x-SNAPSHOT'
+def dockerVersion = "38w"
 description = 'Zalenium'
 sourceCompatibility = '1.8'
 
@@ -62,16 +63,13 @@ tasks.withType(JavaCompile) {
 
 def mainClassName = 'org.openqa.grid.selenium.GridLauncherV3'
 
-jar {
+task fatJar(type: Jar) {
     manifest {
         attributes(
                 'Main-Class': mainClassName
         )
     }
-}
 
-task fatJar(type: Jar) {
-    manifest.from jar.manifest
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     } {
@@ -110,7 +108,7 @@ task targetCopy(type: Copy) {
 docker {
     dependsOn(targetCopy, fatJar)
 
-    name "michaelboulton2/zalenium:" + (project.ext.properties.get("IMAGE_TAG") ?: "34w")
+    name "michaelboulton2/zalenium:" + (project.ext.properties.get("IMAGE_TAG") ?: dockerVersion)
 
     files(copyDestination, fatJar.outputs)
 }
