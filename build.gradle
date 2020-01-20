@@ -4,6 +4,7 @@
 
 plugins {
     id 'java'
+    id 'java-library'
     id 'maven-publish'
     id "io.freefair.lombok" version "4.1.6"
 //    id 'com.bmuschko.docker-remote-api' version '6.1.2'
@@ -18,8 +19,9 @@ repositories {
 }
 
 dependencies {
+    api 'org.seleniumhq.selenium:selenium-server:3.141.59'
+
     implementation 'org.aspectj:aspectjrt:1.8.13'
-    implementation 'org.seleniumhq.selenium:selenium-server:3.141.59'
     implementation 'com.spotify:docker-client:8.15.0'
     implementation 'io.fabric8:openshift-client:4.1.0'
     implementation 'ch.qos.logback:logback-core:1.2.3'
@@ -58,6 +60,29 @@ tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
 
+def mainClassName = 'org.openqa.grid.selenium.GridLauncherV3'
+
+jar {
+    manifest {
+        attributes(
+                'Main-Class': mainClassName
+        )
+    }
+}
+
+task fatJar(type: Jar) {
+    manifest.from jar.manifest
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    } {
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+    with jar
+}
+
+
 test {
     useTestNG()
     ignoreFailures(true)
@@ -74,6 +99,7 @@ task targetCopy(type: Copy) {
             if (file.isFile()) {
                 def fileText = file.text
                 fileText = fileText.replaceAll(('\\$\\{project.build.finalName}'), "${project.name}-${project.version}")
+                fileText = fileText.replaceAll(('\\$\\{project.version}'), "${project.version}")
                 file.write(fileText)
             }
 
@@ -82,11 +108,11 @@ task targetCopy(type: Copy) {
 }
 
 docker {
-    dependsOn(targetCopy, jar)
+    dependsOn(targetCopy, fatJar)
 
-    name "michaelboulton2/zalenium" + (project.ext.properties.get("IMAGE_TAG") ?: "30w")
+    name "michaelboulton2/zalenium:" + (project.ext.properties.get("IMAGE_TAG") ?: "34w")
 
-    files(copyDestination, jar.outputs)
+    files(copyDestination, fatJar.outputs)
 }
 
 publishing {
