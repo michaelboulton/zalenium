@@ -416,7 +416,7 @@ RUN sudo chgrp -R 0 /home/seluser && \
     sudo chmod -R u+x /home/seluser
 
 RUN echo ${ZAL_VER}
-COPY libs/${ZAL_VER}.jar /home/seluser/${ZAL_VER}.jar
+COPY ${ZAL_VER}.jar /home/seluser/${ZAL_VER}.jar
 
 # IMPORTANT: Using the string form `CMD "entry.sh"` without
 # brackets [] causes Docker to run your process

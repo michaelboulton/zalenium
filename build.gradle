@@ -54,14 +54,6 @@ version = '3.141.59x-SNAPSHOT'
 description = 'Zalenium'
 sourceCompatibility = '1.8'
 
-//publishing {
-//    publications {
-//        maven(MavenPublication) {
-//            from(components.java)
-//        }
-//    }
-//}
-
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
@@ -89,43 +81,19 @@ task targetCopy(type: Copy) {
     }
 }
 
-//task targetCopy(type: Copy) {
-//    dependsOn("build", "jar")
-//
-//    from("scripts", "docker", "dashboard", sourceSets.main.resources)
-//    into(project.buildDir)
-//
-//    doLast {
-//        project.buildDir.eachFile { file ->
-//            if (file.isFile() && file.text.contains("finalName")) {
-//                def fileText = file.text
-//                fileText = fileText.replaceAll(('\\$\\{project.build.finalName}'), "${project.name}-${project.version}")
-//                file.write(fileText)
-//            }
-//
-//        }
-//    }
-//}
-//
-//
-//import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
-//import com.bmuschko.gradle.docker.tasks.image.DockerPushImage
-//
-//task buildImage(type: DockerBuildImage) {
-//    dependsOn(targetCopy)
-//
-//    images = ["michaelboulton2/zalenium:" + (project.ext.properties.get("IMAGE_TAG") ?: "29w")]
-//    inputDir = file(project.buildDir)
-//}
-//
-//task pushImage(type: DockerPushImage) {
-//    images = [buildImage.images.get().first().toString()]
-//}
-
 docker {
     dependsOn(targetCopy, jar)
 
     name "michaelboulton2/zalenium" + (project.ext.properties.get("IMAGE_TAG") ?: "29w")
 
-    files copyDestination, jar.outputs
+    files(copyDestination, jar.outputs)
+}
+
+publishing {
+    publications {
+        dockerPublication(MavenPublication) {
+            from components.docker
+            artifactId project.name + "-docker"
+        }
+    }
 }
