@@ -6,7 +6,8 @@ plugins {
     id 'java'
     id 'maven-publish'
     id "io.freefair.lombok" version "4.1.6"
-    id 'com.bmuschko.docker-remote-api' version '6.1.2'
+//    id 'com.bmuschko.docker-remote-api' version '6.1.2'
+    id "com.palantir.docker" version "0.24.0"
 }
 
 repositories {
@@ -70,15 +71,15 @@ test {
     ignoreFailures(true)
 }
 
-task targetCopy(type: Copy) {
-    dependsOn("build", "jar")
+def copyDestination = "${project.buildDir}${File.separator}dockerContext"
 
+task targetCopy(type: Copy) {
     from("scripts", "docker", "dashboard", sourceSets.main.resources)
-    into(project.buildDir)
+    into(copyDestination)
 
     doLast {
-        project.buildDir.eachFile { file ->
-            if (file.isFile() && file.text.contains("finalName")) {
+        file(copyDestination).eachFile { file ->
+            if (file.isFile()) {
                 def fileText = file.text
                 fileText = fileText.replaceAll(('\\$\\{project.build.finalName}'), "${project.name}-${project.version}")
                 file.write(fileText)
@@ -88,17 +89,43 @@ task targetCopy(type: Copy) {
     }
 }
 
+//task targetCopy(type: Copy) {
+//    dependsOn("build", "jar")
+//
+//    from("scripts", "docker", "dashboard", sourceSets.main.resources)
+//    into(project.buildDir)
+//
+//    doLast {
+//        project.buildDir.eachFile { file ->
+//            if (file.isFile() && file.text.contains("finalName")) {
+//                def fileText = file.text
+//                fileText = fileText.replaceAll(('\\$\\{project.build.finalName}'), "${project.name}-${project.version}")
+//                file.write(fileText)
+//            }
+//
+//        }
+//    }
+//}
+//
+//
+//import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+//import com.bmuschko.gradle.docker.tasks.image.DockerPushImage
+//
+//task buildImage(type: DockerBuildImage) {
+//    dependsOn(targetCopy)
+//
+//    images = ["michaelboulton2/zalenium:" + (project.ext.properties.get("IMAGE_TAG") ?: "29w")]
+//    inputDir = file(project.buildDir)
+//}
+//
+//task pushImage(type: DockerPushImage) {
+//    images = [buildImage.images.get().first().toString()]
+//}
 
-import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
-import com.bmuschko.gradle.docker.tasks.image.DockerPushImage
+docker {
+    dependsOn(targetCopy, jar)
 
-task buildImage(type: DockerBuildImage) {
-    dependsOn(targetCopy)
+    name "michaelboulton2/zalenium" + (project.ext.properties.get("IMAGE_TAG") ?: "29w")
 
-    images = ["michaelboulton2/zalenium:" + (project.ext.properties.get("IMAGE_TAG") ?: "29w")]
-    inputDir = file(project.buildDir)
-}
-
-task pushImage(type: DockerPushImage) {
-    images = [buildImage.imageId]
+    files copyDestination, jar.outputs
 }
