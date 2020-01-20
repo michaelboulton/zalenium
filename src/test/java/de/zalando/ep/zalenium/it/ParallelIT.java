@@ -8,10 +8,7 @@ import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.testng.annotations.*;
 import org.testng.util.Strings;
 
 import java.lang.reflect.Method;
@@ -23,6 +20,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 
 
 @SuppressWarnings("UnusedParameters")
+@Ignore
 public class ParallelIT  {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ParallelIT.class);
@@ -31,7 +29,7 @@ public class ParallelIT  {
     private static final String testingBotIntegration = "testingBot";
     private static final String crossBrowserTestingIntegration = "crossBrowserTesting";
     private static final String lambdaTestIntegration = "lambdaTest";
-    
+
     // Zalenium setup variables
     private static final String ZALENIUM_HOST = System.getenv("ZALENIUM_GRID_HOST") != null ?
             System.getenv("ZALENIUM_GRID_HOST") : "localhost";
