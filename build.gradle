@@ -84,7 +84,7 @@ task targetCopy(type: Copy) {
 docker {
     dependsOn(targetCopy, jar)
 
-    name "michaelboulton2/zalenium" + (project.ext.properties.get("IMAGE_TAG") ?: "29w")
+    name "michaelboulton2/zalenium" + (project.ext.properties.get("IMAGE_TAG") ?: "30w")
 
     files(copyDestination, jar.outputs)
 }
