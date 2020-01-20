@@ -34,13 +34,16 @@ public final class CopyStrategy {
         String envVariable = environment.getStringEnvVariable("ZALENIUM_COPY_FILES_STRATEGY", null);
         if (envVariable == null) {
 //            Best effort
+            logger.debug("Using shared volumes to copy files");
             strategy = Strategy.FROM_VOLUMES;
         } else {
             switch (envVariable) {
                 case "COMMAND":
+                    logger.debug("Using remote commands to copy files");
                     strategy = Strategy.FROM_COMMANDS;
                     break;
                 case "VOLUME":
+                    logger.debug("Using shared volumes to copy files");
                     strategy = Strategy.FROM_VOLUMES;
                     break;
                 default:
