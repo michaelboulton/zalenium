@@ -21,6 +21,11 @@ public enum FileCopyStrategy {
 
         @Override
         public Volume volumeForNode(Volume original) {
+//            Only care about PVCs
+            if (null == original.getPersistentVolumeClaim()) {
+                return original;
+            }
+
 //            Set empty dir instead of pvc
 //            TODO: Is there a way with this builder API to just copy the name...
             Volume newVolume = VolumeBuilder.builderOf(original).build();
