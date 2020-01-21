@@ -126,6 +126,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         boolean videoEnabled = env.getBooleanEnvVariable(ZALENIUM_VIDEO_RECORDING_ENABLED,
                 DEFAULT_VIDEO_RECORDING_ENABLED);
         setVideoRecordingEnabledGlobal(videoEnabled);
+        LOGGER.info("Video recording enabled globally: {}", videoEnabled);
 
         maxTestSessions = env.getIntEnvVariable(ZALENIUM_MAX_TEST_SESSIONS, DEFAULT_MAX_TEST_SESSIONS);
         keepOnlyFailedTests = env.getBooleanEnvVariable(ZALENIUM_KEEP_ONLY_FAILED_TESTS,
@@ -189,6 +190,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
 
     private void setVideoRecordingEnabledSession(boolean videoRecordingEnabled) {
         this.videoRecordingEnabledSession = videoRecordingEnabled;
+        LOGGER.info("Enabling video recording for session");
         this.videoRecordingEnabledConfigured = true;
     }
 
@@ -589,7 +591,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
                 ga.trackException(e);
             }
         } else {
-            LOGGER.debug("{}: Video recording is disabled", action.getContainerAction());
+            LOGGER.info("{}: Video recording is disabled", action.getContainerAction());
         }
         setThreadName(currentName);
     }
@@ -633,11 +635,11 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         if (keepVideoAndLogs()) {
             LOGGER.info("Copying video and log for test");
             if (DockerSeleniumContainerAction.STOP_RECORDING == action) {
-                LOGGER.info("Copying videos");
+                LOGGER.debug("Copying videos");
                 copyVideos(containerId);
             }
             if (DockerSeleniumContainerAction.TRANSFER_LOGS == action) {
-                LOGGER.info("Copying logs");
+                LOGGER.debug("Copying logs");
                 copyLogs(containerId);
             }
         } else {
@@ -654,10 +656,12 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         }
         String currentName = configureThreadName();
         boolean videoWasCopied = false;
+        int numCopied = 0;
         InputStreamGroupIterator tarStream = containerClient.copyFiles(containerId, "/videos/");
         try {
             InputStreamDescriptor entry;
             while ((entry = tarStream.next()) != null) {
+                numCopied += 1;
                 String fileExtension = entry.name().substring(entry.name().lastIndexOf('.'));
                 testInformation.setFileExtension(fileExtension);
                 Path videoFile = Paths.get(String.format("%s/%s", testInformation.getVideoFolderPath(),
@@ -683,6 +687,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
             if (!videoWasCopied) {
                 testInformation.setVideoRecorded(false);
             }
+            LOGGER.info("Managed to copy {} videos", numCopied);
         }
         setThreadName(currentName);
     }

@@ -44,16 +44,16 @@ dependencies {
     testImplementation 'com.github.stefanbirkner:system-rules:1.19.0'
     testImplementation 'org.testng:testng:6.14.3'
     testImplementation 'org.awaitility:awaitility:3.1.2'
+
     compileOnly 'org.eclipse.jetty:jetty-server:9.4.12.v20180830'
     compileOnly 'org.projectlombok:lombok:1.18.10'
     compileOnly group: 'org.jetbrains', name: 'annotations', version: '16.0.1'
-
     annotationProcessor 'org.projectlombok:lombok:1.18.10'
 }
 
 group = 'de.zalando.ep'
 version = '3.141.59x-SNAPSHOT'
-def dockerVersion = "38w"
+def dockerVersion = "50w"
 description = 'Zalenium'
 sourceCompatibility = '1.8'
 

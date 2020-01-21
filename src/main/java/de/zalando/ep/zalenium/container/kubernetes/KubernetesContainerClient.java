@@ -3,10 +3,7 @@ package de.zalando.ep.zalenium.container.kubernetes;
 import de.zalando.ep.zalenium.container.ContainerClient;
 import de.zalando.ep.zalenium.container.ContainerClientRegistration;
 import de.zalando.ep.zalenium.container.ContainerCreationStatus;
-import de.zalando.ep.zalenium.container.kubernetes.filecopy.CommandCopier;
-import de.zalando.ep.zalenium.container.kubernetes.filecopy.CopyStrategy;
 import de.zalando.ep.zalenium.container.kubernetes.filecopy.PodFileCopy;
-import de.zalando.ep.zalenium.container.kubernetes.filecopy.SharedVolumeCopier;
 import de.zalando.ep.zalenium.streams.InputStreamGroupIterator;
 import de.zalando.ep.zalenium.util.Environment;
 import io.fabric8.kubernetes.api.model.*;
@@ -15,18 +12,14 @@ import io.fabric8.kubernetes.client.dsl.ExecListener;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import okhttp3.Response;
 import org.apache.commons.lang.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -62,7 +55,11 @@ public class KubernetesContainerClient implements ContainerClient {
     private Map<String, String> appLabelMap;
 
     private Map<VolumeMount, Volume> mountedSharedFoldersMap = new HashMap<>();
+
+    //    This is not 'shared' when not using shared volumes, but stuff is copied back into here
     private VolumeMount nodeSharedArtifactsMount;
+    private Map<String, SeleniumPodMounts> seleniumPodMountsMap = new HashMap<>();
+
     private List<HostAlias> hostAliases = new ArrayList<>();
     private Map<String, String> nodeSelector = new HashMap<>();
     private List<Toleration> tolerations = new ArrayList<>();
@@ -283,11 +280,28 @@ public class KubernetesContainerClient implements ContainerClient {
      */
     @Override
     public InputStreamGroupIterator copyFiles(String containerId, String folderName) {
+        SeleniumPodMounts podMounts = seleniumPodMountsMap.get(containerId);
+
+        if (null == podMounts) {
+            logger.error(
+                    "Unable to get pod mount folders for {} (had {}) - falling back to default",
+                    containerId,
+                    Arrays.toString(seleniumPodMountsMap.keySet().toArray())
+            );
+        } else {
+            folderName = podMounts.getActualPath(folderName);
+        }
+
         return copier.copyFiles(containerId, folderName);
     }
 
     @Override
     public void stopContainer(String containerId) {
+        if (null == seleniumPodMountsMap.remove(containerId)) {
+//        Don't particularly care if it fails
+            logger.warn("No entry in mount mappings for container {}", containerId);
+        }
+
         client.pods().withName(containerId).delete();
     }
 
@@ -349,7 +363,7 @@ public class KubernetesContainerClient implements ContainerClient {
     }
 
     @Override
-    public ContainerCreationStatus createContainer(String zaleniumContainerName, String image, Map<String, String> envVars,
+    public ContainerCreationStatus createContainer(String zaleniumContainerName, String image, @NotNull Map<String, String> envVars,
                                                    String nodePort) {
         String containerIdPrefix = String.format("%s-%s-", zaleniumAppName, nodePort);
 
@@ -358,19 +372,11 @@ public class KubernetesContainerClient implements ContainerClient {
                 .map(e -> new EnvVar(e.getKey(), e.getValue(), null))
                 .collect(Collectors.toList());
 
-        if (nodeSharedArtifactsMount != null) {
-            String workDir = nodeSharedArtifactsMount.getMountPath() + "/" + UUID.randomUUID().toString();
-            flattenedEnvVars.add(new EnvVar("SHARED_DIR", workDir, null));
-            String videoDir = workDir;
-            flattenedEnvVars.add(new EnvVar("VIDEOS_DIR", videoDir, null));
-            String logDir = workDir;
-            flattenedEnvVars.add(new EnvVar("LOGS_DIR", logDir, null));
-            if (!Files.exists(Paths.get(workDir))) {
-                Objects.requireNonNull(createDirectories(workDir));
-                Objects.requireNonNull(createDirectories(videoDir));
-                Objects.requireNonNull(createDirectories(logDir));
-            }
-        }
+        SeleniumPodMounts podFolders = SeleniumPodMounts.createMounts(nodeSharedArtifactsMount.getMountPath());
+
+        flattenedEnvVars.add(new EnvVar("SHARED_DIR", podFolders.getSharedMountFolder(), null));
+        flattenedEnvVars.add(new EnvVar("VIDEOS_DIR", podFolders.getVideoMountFolder(), null));
+        flattenedEnvVars.add(new EnvVar("LOGS_DIR", podFolders.getLogMountFolder(), null));
 
         Map<String, String> podSelector = new HashMap<>();
 
@@ -403,19 +409,14 @@ public class KubernetesContainerClient implements ContainerClient {
 
         // Create the container
         Pod createdPod = doneablePod.done();
+
         String containerName = createdPod.getMetadata() == null ? containerIdPrefix : createdPod.getMetadata().getName();
+
+//        Track volume mounts
+        seleniumPodMountsMap.put(containerName, podFolders);
         return new ContainerCreationStatus(true, containerName, containerName, nodePort);
     }
 
-    @Nullable
-    private static Path createDirectories(String dirName) {
-        try {
-            return Files.createDirectories(Paths.get(dirName));
-        } catch (IOException e) {
-            logger.error("Error creating folder {}: {}", dirName, e);
-            return null;
-        }
-    }
 
     @Override
     public void initialiseContainerEnvironment() {
@@ -557,6 +558,7 @@ public class KubernetesContainerClient implements ContainerClient {
         logger.info("Creating pod: {}", (config));
 
 //        Create init containers that will create folder if they don't exist
+//        Assumes read-write filesystems
         List<Container> initContainers = Stream.of("SHARED_DIR", "VIDEOS_DIR", "LOGS_DIR")
                 .map(dirName -> {
                     Container mkdirContainer = new Container();
