@@ -7,11 +7,11 @@ import de.zalando.ep.zalenium.dashboard.TestInformation;
 import org.openqa.grid.common.RegistrationRequest;
 import org.openqa.grid.internal.GridRegistry;
 import org.openqa.selenium.remote.server.jmx.ManagedService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /*
     Almost all concepts and ideas for this part of the implementation are taken from the open source project seen here:
@@ -114,18 +114,18 @@ public class SauceLabsRemoteProxy extends CloudTestingRemoteProxy {
         List<String> logUrls = new ArrayList<>();
         logUrls.add(sauceLabsBrowserLogUrl);
         logUrls.add(sauceLabsSeleniumLogUrl);
-        return new TestInformation.TestInformationBuilder()
-                .withSeleniumSessionId(seleniumSessionId)
-                .withTestName(testName)
-                .withProxyName(getProxyName())
-                .withBrowser(browser)
-                .withBrowserVersion(browserVersion)
-                .withPlatform(platform)
-                .withTestStatus(TestInformation.TestStatus.COMPLETED)
-                .withFileExtension(getVideoFileExtension())
-                .withVideoUrl(sauceLabsVideoUrl)
-                .withLogUrls(logUrls)
-                .withMetadata(getMetadata())
+        return TestInformation.builder()
+                .seleniumSessionId(seleniumSessionId)
+                .testName(testName)
+                .proxyName(getProxyName())
+                .browser(browser)
+                .browserVersion(browserVersion)
+                .platform(platform)
+                .testStatus(TestInformation.TestStatus.COMPLETED)
+                .fileExtension(getVideoFileExtension())
+                .videoUrl(sauceLabsVideoUrl)
+                .logUrls(logUrls)
+                .metadata(getMetadata())
                 .build();
     }
 

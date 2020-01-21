@@ -6,6 +6,9 @@ import com.google.gson.JsonObject;
 
 import de.zalando.ep.zalenium.proxy.RemoteLogFile;
 import de.zalando.ep.zalenium.util.CommonProxyUtilities;
+import lombok.Builder;
+import lombok.Data;
+import lombok.With;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -16,6 +19,8 @@ import java.util.Optional;
  * The purpose of this class is to gather the test information that can be used to render the dashboard.
  */
 @SuppressWarnings("WeakerAccess")
+@Data
+@Builder
 public class TestInformation {
     private static final String TEST_FILE_NAME_TEMPLATE = "{proxyName}_{testName}_{browser}_{platform}_{timestamp}_{testStatus}";
     private static final String FILE_NAME_TEMPLATE = "{fileName}{fileExtension}";
@@ -57,96 +62,12 @@ public class TestInformation {
         return videoRecorded;
     }
 
-    public void setVideoRecorded(boolean videoRecorded) {
-        this.videoRecorded = videoRecorded;
-    }
-
-    public String getVideoFolderPath() {
-        return videoFolderPath;
-    }
-
-    public String getSeleniumSessionId() {
-        return seleniumSessionId;
-    }
-
-    public String getBrowser() {
-        return browser;
-    }
-
-    public String getBrowserVersion() {
-        return browserVersion;
-    }
-
-    public String getPlatform() {
-        return platform;
-    }
-
-    public String getProxyName() {
-        return proxyName;
-    }
-
-    public String getScreenDimension() {
-        return screenDimension;
-    }
-
     public String getTestName() {
         return Optional.ofNullable(testName).orElse(seleniumSessionId);
     }
 
-    public Date getTimestamp() {
-        return timestamp;
-    }
-
-    public void setAddedToDashboardTime(long addedToDashboardTime) {
-        this.addedToDashboardTime = addedToDashboardTime;
-    }
-
-    public long getAddedToDashboardTime() {
-        return addedToDashboardTime;
-    }
-
-    public String getFileName() {
-        return fileName;
-    }
-
-    public List<String> getLogUrls() {
-        return logUrls;
-    }
-
     public List<RemoteLogFile> getRemoteLogFiles() {
         return remoteLogFiles == null ? new ArrayList<>() : remoteLogFiles;
-    }
-
-    public String getVideoUrl() {
-        return videoUrl;
-    }
-
-    public String getLogsFolderPath() {
-        return logsFolderPath;
-    }
-
-    public String getTimeZone() {
-        return timeZone;
-    }
-
-    public String getBuild() {
-        return build;
-    }
-
-    public Date getRetentionDate() {
-        return retentionDate;
-    }
-
-    public void setRetentionDate(Date retentionDate) {
-        this.retentionDate = retentionDate;
-    }
-
-    public TestStatus getTestStatus() {
-        return testStatus;
-    }
-
-    public void setTestStatus(TestStatus testStatus) {
-        this.testStatus = testStatus;
     }
 
     public void buildSeleniumLogFileName() {
@@ -266,136 +187,4 @@ public class TestInformation {
         }
     }
 
-    private TestInformation(TestInformationBuilder builder) {
-        this.seleniumSessionId = builder.seleniumSessionId;
-        this.testName = builder.testName;
-        this.timestamp = new Date();
-        this.proxyName = builder.proxyName;
-        this.browser = builder.browser;
-        this.browserVersion = builder.browserVersion;
-        this.platform = builder.platform;
-        this.platformVersion = builder.platformVersion;
-        this.videoUrl = builder.videoUrl;
-        this.fileExtension = Optional.ofNullable(builder.fileExtension).orElse("");
-        this.logUrls = builder.logUrls;
-        this.remoteLogFiles = builder.remoteLogFiles;
-        this.screenDimension = Optional.ofNullable(builder.screenDimension).orElse("");
-        this.timeZone = Optional.ofNullable(builder.timeZone).orElse("");
-        this.build = Optional.ofNullable(builder.build).orElse("");
-        this.testFileNameTemplate = Optional.ofNullable(builder.testFileNameTemplate).orElse("");
-        this.testStatus = builder.testStatus;
-        this.videoRecorded = true;
-        this.metadata = builder.metadata;
-        buildVideoFileName();
-    }
-
-    public static class TestInformationBuilder {
-        private String seleniumSessionId;
-        private String testName;
-        private String proxyName;
-        private String browser;
-        private String browserVersion;
-        private String platform;
-        private String platformVersion;
-        private String fileExtension;
-        private String videoUrl;
-        private List<String> logUrls;
-        private String screenDimension;
-        private String timeZone;
-        private String build;
-        private String testFileNameTemplate;
-        private TestStatus testStatus;
-        private JsonObject metadata;
-        private List<RemoteLogFile> remoteLogFiles;
-
-        public TestInformationBuilder withSeleniumSessionId(String seleniumSessionId) {
-            this.seleniumSessionId = seleniumSessionId;
-            return this;
-        }
-
-        public TestInformationBuilder withTestName(String testName) {
-            this.testName = testName;
-            return this;
-        }
-
-        public TestInformationBuilder withProxyName(String proxyName) {
-            this.proxyName = proxyName;
-            return this;
-        }
-
-        public TestInformationBuilder withBrowser(String browser) {
-            this.browser = browser;
-            return this;
-        }
-
-        public TestInformationBuilder withBrowserVersion(String browserVersion) {
-            this.browserVersion = browserVersion;
-            return this;
-        }
-
-        public TestInformationBuilder withPlatform(String platform) {
-            this.platform = platform;
-            return this;
-        }
-
-        public TestInformationBuilder withPlatformVersion(String platformVersion) {
-            this.platformVersion = platformVersion;
-            return this;
-        }
-
-        public TestInformationBuilder withFileExtension(String fileExtension) {
-            this.fileExtension = fileExtension;
-            return this;
-        }
-
-        public TestInformationBuilder withVideoUrl(String videoUrl) {
-            this.videoUrl = videoUrl;
-            return this;
-        }
-
-        public TestInformationBuilder withLogUrls(List<String> logUrls) {
-            this.logUrls = logUrls;
-            return this;
-        }
-
-        public TestInformationBuilder withRemoteLogFiles(List<RemoteLogFile> remoteLogFiles) {
-            this.remoteLogFiles = remoteLogFiles;
-            return this;
-        }
-
-        public TestInformationBuilder withScreenDimension(String screenDimension) {
-            this.screenDimension = screenDimension;
-            return this;
-        }
-
-        public TestInformationBuilder withTimeZone(String timeZone) {
-            this.timeZone = timeZone;
-            return this;
-        }
-
-        public TestInformationBuilder withBuild(String build) {
-            this.build = build;
-            return this;
-        }
-
-        public TestInformationBuilder withTestFileNameTemplate(String testFileNameTemplate) {
-            this.testFileNameTemplate = testFileNameTemplate;
-            return this;
-        }
-
-        public TestInformationBuilder withTestStatus(TestStatus testStatus) {
-            this.testStatus = testStatus;
-            return this;
-        }
-
-        public TestInformationBuilder withMetadata(JsonObject metadata) {
-            this.metadata = metadata;
-            return this;
-        }
-
-        public TestInformation build() {
-            return new TestInformation(this);
-        }
-
-    }
 }

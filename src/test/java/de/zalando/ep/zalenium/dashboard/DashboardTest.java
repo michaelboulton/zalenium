@@ -20,14 +20,14 @@ public class DashboardTest {
 
     private static final String TEST_COUNT_FILE_NAME = "executedTestsInfo.json";
 
-    private TestInformation ti = new TestInformation.TestInformationBuilder()
-            .withSeleniumSessionId("seleniumSessionId")
-            .withTestName("testName")
-            .withProxyName("proxyName")
-            .withBrowser("browser")
-            .withBrowserVersion("browserVersion")
-            .withPlatform("platform")
-            .withTestStatus(TestInformation.TestStatus.COMPLETED)
+    private TestInformation ti = TestInformation.builder()
+            .seleniumSessionId("seleniumSessionId")
+            .testName("testName")
+            .proxyName("proxyName")
+            .browser("browser")
+            .browserVersion("browserVersion")
+            .platform("platform")
+            .testStatus(TestInformation.TestStatus.COMPLETED)
             .build();
 
     @Rule

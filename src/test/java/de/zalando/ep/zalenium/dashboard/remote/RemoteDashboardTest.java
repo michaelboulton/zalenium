@@ -9,7 +9,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.*;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,17 +25,16 @@ public class RemoteDashboardTest {
 
     private List<RemoteDashboard> dashboardsToTest = new ArrayList<>();
 
-    private TestInformation.TestInformationBuilder builder = new TestInformation.TestInformationBuilder()
-            .withSeleniumSessionId("seleniumSessionId")
-            .withTestName("testName")
-            .withFileExtension(".mp4")
-            .withProxyName("proxyName")
-            .withBrowser("browser")
-            .withBrowserVersion("browserVersion")
-            .withPlatform("platform")
-            .withProxyName("zalenium")
-            .withTestStatus(TestInformation.TestStatus.COMPLETED);
-
+    private TestInformation.TestInformationBuilder builder = TestInformation.builder()
+            .seleniumSessionId("seleniumSessionId")
+            .testName("testName")
+            .fileExtension(".mp4")
+            .proxyName("proxyName")
+            .browser("browser")
+            .browserVersion("browserVersion")
+            .platform("platform")
+            .proxyName("zalenium")
+            .testStatus(TestInformation.TestStatus.COMPLETED);
 
     public RemoteDashboardTest() {
         dashboardsToTest.add(new RemoteVideoDashboard());
@@ -50,7 +49,7 @@ public class RemoteDashboardTest {
         when(mockFormPoster.post(any())).thenThrow(new AssertionError("Remote dashboard classes may not Post() if Url is not set."));
 
         TestInformation ti = this.builder.build();
-        for( RemoteDashboard  d: this.dashboardsToTest) {
+        for (RemoteDashboard d : this.dashboardsToTest) {
             d.setFormPoster(mockFormPoster);
             d.updateDashboard(ti);
         }
@@ -67,7 +66,7 @@ public class RemoteDashboardTest {
         TestInformation ti = builder.build();
         ti.setVideoRecorded(true);
 
-        for( RemoteDashboard  d : this.dashboardsToTest) {
+        for (RemoteDashboard d : this.dashboardsToTest) {
             d.setFormPoster(mockFormPoster);
             try {
                 d.updateDashboard(ti);
@@ -77,8 +76,6 @@ public class RemoteDashboardTest {
             }
         }
     }
-
-
 
 
 }

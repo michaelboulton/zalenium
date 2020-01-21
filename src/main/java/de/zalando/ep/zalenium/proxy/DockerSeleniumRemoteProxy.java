@@ -392,18 +392,18 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         String screenResolution = getCapability(session.getSlot().getCapabilities(), ZaleniumCapabilityType.SCREEN_RESOLUTION, "N/A");
         String browserVersion = getCapability(session.getSlot().getCapabilities(), CapabilityType.VERSION, "");
         String timeZone = getCapability(session.getSlot().getCapabilities(), ZaleniumCapabilityType.TIME_ZONE, "N/A");
-        testInformation = new TestInformation.TestInformationBuilder()
-                .withTestName(testName)
-                .withSeleniumSessionId(seleniumSessionId)
-                .withProxyName("Zalenium")
-                .withBrowser(browserName)
-                .withBrowserVersion(browserVersion)
-                .withPlatform(Platform.LINUX.name())
-                .withScreenDimension(screenResolution)
-                .withTimeZone(timeZone)
-                .withTestFileNameTemplate(testFileNameTemplate)
-                .withBuild(testBuild)
-                .withTestStatus(TestInformation.TestStatus.COMPLETED)
+        testInformation =  TestInformation.builder()
+                .testName(testName)
+                .seleniumSessionId(seleniumSessionId)
+                .proxyName("Zalenium")
+                .browser(browserName)
+                .browserVersion(browserVersion)
+                .platform(Platform.LINUX.name())
+                .screenDimension(screenResolution)
+                .timeZone(timeZone)
+                .testFileNameTemplate(testFileNameTemplate)
+                .build(testBuild)
+                .testStatus(TestInformation.TestStatus.COMPLETED)
                 .build();
         testInformation.setVideoRecorded(isVideoRecordingEnabled());
 
@@ -789,6 +789,8 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
 
             if (testInformation != null && keepVideoAndLogs()) {
                 DashboardCollection.updateDashboard(testInformation);
+            } else {
+                LOGGER.info("Not updating dashboard for test ({}/{})", testInformation, keepVideoAndLogs());
             }
         } finally {
             this.unsetCleaningMarker();

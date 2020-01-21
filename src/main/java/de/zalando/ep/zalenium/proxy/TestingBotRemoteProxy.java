@@ -102,18 +102,18 @@ public class TestingBotRemoteProxy extends CloudTestingRemoteProxy {
             String platform = testData.get("os").getAsString();
             String videoUrl = testData.get("video").getAsString();
             List<String> logUrls = new ArrayList<>();
-            testInformation = new TestInformation.TestInformationBuilder()
-                    .withSeleniumSessionId(seleniumSessionId)
-                    .withTestName(testName)
-                    .withProxyName(getProxyName())
-                    .withBrowser(browser)
-                    .withBrowserVersion(browserVersion)
-                    .withPlatform(platform)
-                    .withTestStatus(TestInformation.TestStatus.COMPLETED)
-                    .withFileExtension(getVideoFileExtension())
-                    .withVideoUrl(videoUrl)
-                    .withLogUrls(logUrls)
-                    .withMetadata(getMetadata())
+            testInformation = TestInformation.builder()
+                    .seleniumSessionId(seleniumSessionId)
+                    .testName(testName)
+                    .proxyName(getProxyName())
+                    .browser(browser)
+                    .browserVersion(browserVersion)
+                    .platform(platform)
+                    .testStatus(TestInformation.TestStatus.COMPLETED)
+                    .fileExtension(getVideoFileExtension())
+                    .videoUrl(videoUrl)
+                    .logUrls(logUrls)
+                    .metadata(getMetadata())
                     .build();
             // Sometimes the video URL is not ready right away, so we need to wait a bit and fetch again.
             if (videoUrl.startsWith("http")) {

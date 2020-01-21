@@ -115,18 +115,18 @@ public class CBTRemoteProxy extends CloudTestingRemoteProxy {
                 null : testData.get("caps").getAsJsonObject().get("platform").getAsString();
         List<String> logUrls = new ArrayList<>();
 
-        return new TestInformation.TestInformationBuilder()
-                .withSeleniumSessionId(seleniumSessionId)
-                .withTestName(testName)
-                .withProxyName(getProxyName())
-                .withBrowser(browser)
-                .withBrowserVersion(browserVersion)
-                .withPlatform(platform)
-                .withTestStatus(TestInformation.TestStatus.COMPLETED)
-                .withFileExtension(getVideoFileExtension())
-                .withVideoUrl(cbtVideoUrl)
-                .withLogUrls(logUrls)
-                .withMetadata(getMetadata())
+        return TestInformation.builder()
+                .seleniumSessionId(seleniumSessionId)
+                .testName(testName)
+                .proxyName(getProxyName())
+                .browser(browser)
+                .browserVersion(browserVersion)
+                .platform(platform)
+                .testStatus(TestInformation.TestStatus.COMPLETED)
+                .fileExtension(getVideoFileExtension())
+                .videoUrl(cbtVideoUrl)
+                .logUrls(logUrls)
+                .metadata(getMetadata())
                 .build();
     }
 

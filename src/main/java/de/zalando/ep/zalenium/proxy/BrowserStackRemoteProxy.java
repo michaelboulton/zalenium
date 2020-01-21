@@ -113,20 +113,20 @@ public class BrowserStackRemoteProxy extends CloudTestingRemoteProxy {
                 remoteLogFiles.add(new RemoteLogFile(automation_session.get("logs").getAsString(), "browserstack.log", true));
                 remoteLogFiles.add(new RemoteLogFile(automation_session.get("selenium_logs_url").getAsString(), "selenium.log", false));
                 if (videoUrl.startsWith("http")) {
-                    return new TestInformation.TestInformationBuilder()
-                        .withSeleniumSessionId(seleniumSessionId)
-                        .withTestName(testName)
-                        .withProxyName(getProxyName())
-                        .withBrowser(browser)
-                        .withBrowserVersion(browserVersion)
-                        .withPlatform(platform)
-                        .withTestStatus(TestInformation.TestStatus.COMPLETED)
-                        .withPlatformVersion(platformVersion)
-                        .withFileExtension(getVideoFileExtension())
-                        .withVideoUrl(videoUrl)
-                        .withLogUrls(logUrls)
-                        .withRemoteLogFiles(remoteLogFiles)
-                        .withMetadata(getMetadata())
+                    return TestInformation.builder()
+                        .seleniumSessionId(seleniumSessionId)
+                        .testName(testName)
+                        .proxyName(getProxyName())
+                        .browser(browser)
+                        .browserVersion(browserVersion)
+                        .platform(platform)
+                        .testStatus(TestInformation.TestStatus.COMPLETED)
+                        .platformVersion(platformVersion)
+                        .fileExtension(getVideoFileExtension())
+                        .videoUrl(videoUrl)
+                        .logUrls(logUrls)
+                        .remoteLogFiles(remoteLogFiles)
+                        .metadata(getMetadata())
                         .build();
                 }
             } catch (Exception e) {
