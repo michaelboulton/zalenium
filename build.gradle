@@ -83,7 +83,6 @@ task fatJar(type: Jar) {
 
 test {
     useTestNG()
-    ignoreFailures(true)
 }
 
 def copyDestination = "${project.buildDir}${File.separator}dockerContext"
