@@ -78,6 +78,10 @@ task fatJar(type: Jar) {
         exclude "META-INF/*.RSA"
     }
     with jar
+
+    configure {
+        dependsOn(test)
+    }
 }
 
 
