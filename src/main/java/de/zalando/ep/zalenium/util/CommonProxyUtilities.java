@@ -3,16 +3,10 @@ package de.zalando.ep.zalenium.util;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import org.apache.commons.codec.binary.Base64;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
+import java.io.*;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -26,8 +20,6 @@ import java.nio.file.attribute.UserPrincipal;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CommonProxyUtilities {
 
@@ -85,7 +77,7 @@ public class CommonProxyUtilities {
     }
 
     public void downloadFile(String fileUrl, String fileNameWithFullPath, String user, String password,
-    boolean authenticate) throws InterruptedException{
+                             boolean authenticate) throws InterruptedException {
         downloadFile(fileUrl, fileNameWithFullPath, user, password, authenticate, 10);
     }
 
@@ -115,8 +107,7 @@ public class CommonProxyUtilities {
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 byte[] buf = new byte[1024];
                 int n;
-                while (-1!=(n=in.read(buf)))
-                {
+                while (-1 != (n = in.read(buf))) {
                     out.write(buf, 0, n);
                 }
                 out.close();
@@ -158,7 +149,7 @@ public class CommonProxyUtilities {
         DateFormat dateFormat = new SimpleDateFormat("dd-MMM HH:mm:ss");
         return dateFormat.format(d);
     }
-    
+
     public Date getDateAndTime(Date d, int addtionalDays) {
         return new Date(d.getTime() + addtionalDays * 86400000);
     }

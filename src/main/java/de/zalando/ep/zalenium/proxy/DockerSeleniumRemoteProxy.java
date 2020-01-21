@@ -1,24 +1,22 @@
 package de.zalando.ep.zalenium.proxy;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import com.google.common.annotations.VisibleForTesting;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import de.zalando.ep.zalenium.container.ContainerClient;
+import de.zalando.ep.zalenium.container.ContainerClientRegistration;
+import de.zalando.ep.zalenium.container.ContainerFactory;
+import de.zalando.ep.zalenium.container.swarm.SwarmUtilities;
+import de.zalando.ep.zalenium.dashboard.DashboardCollection;
+import de.zalando.ep.zalenium.dashboard.TestInformation;
+import de.zalando.ep.zalenium.matcher.DockerSeleniumCapabilityMatcher;
+import de.zalando.ep.zalenium.matcher.ZaleniumCapabilityType;
 import de.zalando.ep.zalenium.streams.InputStreamDescriptor;
 import de.zalando.ep.zalenium.streams.InputStreamGroupIterator;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import de.zalando.ep.zalenium.util.CommonProxyUtilities;
+import de.zalando.ep.zalenium.util.Environment;
+import de.zalando.ep.zalenium.util.GoogleAnalyticsApi;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -26,11 +24,7 @@ import org.openqa.grid.common.RegistrationRequest;
 import org.openqa.grid.common.exception.RemoteException;
 import org.openqa.grid.common.exception.RemoteNotReachableException;
 import org.openqa.grid.common.exception.RemoteUnregisterException;
-import org.openqa.grid.internal.ExternalSessionKey;
-import org.openqa.grid.internal.GridRegistry;
-import org.openqa.grid.internal.SessionTerminationReason;
-import org.openqa.grid.internal.TestSession;
-import org.openqa.grid.internal.TestSlot;
+import org.openqa.grid.internal.*;
 import org.openqa.grid.internal.utils.CapabilityMatcher;
 import org.openqa.grid.internal.utils.HtmlRenderer;
 import org.openqa.grid.selenium.proxy.DefaultRemoteProxy;
@@ -43,22 +37,21 @@ import org.openqa.selenium.remote.server.jmx.ManagedService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-
-import de.zalando.ep.zalenium.container.ContainerClient;
-import de.zalando.ep.zalenium.container.ContainerClientRegistration;
-import de.zalando.ep.zalenium.container.ContainerFactory;
-import de.zalando.ep.zalenium.container.swarm.SwarmUtilities;
-import de.zalando.ep.zalenium.dashboard.DashboardCollection;
-import de.zalando.ep.zalenium.dashboard.TestInformation;
-import de.zalando.ep.zalenium.matcher.DockerSeleniumCapabilityMatcher;
-import de.zalando.ep.zalenium.matcher.ZaleniumCapabilityType;
-import de.zalando.ep.zalenium.util.CommonProxyUtilities;
-import de.zalando.ep.zalenium.util.Environment;
-import de.zalando.ep.zalenium.util.GoogleAnalyticsApi;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.Date;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 /*
     The implementation of this class was inspired on https://gist.github.com/krmahadevan/4649607
@@ -392,7 +385,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         String screenResolution = getCapability(session.getSlot().getCapabilities(), ZaleniumCapabilityType.SCREEN_RESOLUTION, "N/A");
         String browserVersion = getCapability(session.getSlot().getCapabilities(), CapabilityType.VERSION, "");
         String timeZone = getCapability(session.getSlot().getCapabilities(), ZaleniumCapabilityType.TIME_ZONE, "N/A");
-        testInformation =  TestInformation.builder()
+        testInformation = TestInformation.builder()
                 .testName(testName)
                 .seleniumSessionId(seleniumSessionId)
                 .proxyName("Zalenium")
@@ -400,6 +393,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
                 .browserVersion(browserVersion)
                 .platform(Platform.LINUX.name())
                 .screenDimension(screenResolution)
+                .timestamp(Date.from(Instant.now()))
                 .timeZone(timeZone)
                 .testFileNameTemplate(testFileNameTemplate)
                 .build(testBuild)

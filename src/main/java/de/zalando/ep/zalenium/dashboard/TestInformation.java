@@ -3,13 +3,13 @@ package de.zalando.ep.zalenium.dashboard;
 
 import com.google.common.base.Strings;
 import com.google.gson.JsonObject;
-
 import de.zalando.ep.zalenium.proxy.RemoteLogFile;
 import de.zalando.ep.zalenium.util.CommonProxyUtilities;
 import lombok.Builder;
 import lombok.Data;
-import lombok.With;
+import lombok.NonNull;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -31,6 +31,7 @@ public class TestInformation {
     private static final CommonProxyUtilities commonProxyUtilities = new CommonProxyUtilities();
     private final String seleniumSessionId;
     private String testName;
+    @NonNull
     private Date timestamp;
     private long addedToDashboardTime;
     private String proxyName;
@@ -76,9 +77,9 @@ public class TestInformation {
             seleniumLogFileName = fileName.concat("selenium-multinode-stderr.log");
         } else if (SAUCE_LABS_PROXY_NAME.equalsIgnoreCase(proxyName)) {
             seleniumLogFileName = fileName.concat("selenium-server.log");
-        } else if (BROWSER_STACK_PROXY_NAME.equalsIgnoreCase(proxyName)){
+        } else if (BROWSER_STACK_PROXY_NAME.equalsIgnoreCase(proxyName)) {
             seleniumLogFileName = fileName.concat("selenium.log");
-        } else if (LAMBDA_TEST_PROXY_NAME.equalsIgnoreCase(proxyName)){
+        } else if (LAMBDA_TEST_PROXY_NAME.equalsIgnoreCase(proxyName)) {
             seleniumLogFileName = fileName.concat("selenium.log");
         } else {
             seleniumLogFileName = fileName.concat("not_implemented.log");
@@ -98,9 +99,9 @@ public class TestInformation {
             browserDriverLogFileName = fileName.concat(String.format("%s_driver.log", browser.toLowerCase()));
         } else if (SAUCE_LABS_PROXY_NAME.equalsIgnoreCase(proxyName)) {
             browserDriverLogFileName = fileName.concat("log.json");
-        } else if (BROWSER_STACK_PROXY_NAME.equalsIgnoreCase(proxyName)){
+        } else if (BROWSER_STACK_PROXY_NAME.equalsIgnoreCase(proxyName)) {
             browserDriverLogFileName = fileName.concat("browserstack.log");
-        }  else if (LAMBDA_TEST_PROXY_NAME.equalsIgnoreCase(proxyName)){
+        } else if (LAMBDA_TEST_PROXY_NAME.equalsIgnoreCase(proxyName)) {
             browserDriverLogFileName = fileName.concat("lambdatest.log");
         } else {
             browserDriverLogFileName = fileName.concat("not_implemented.log");
@@ -121,6 +122,14 @@ public class TestInformation {
         buildVideoFileName();
     }
 
+    public Date getTimestamp() {
+        if (this.timestamp == null) {
+            this.timestamp = Date.from(Instant.now());
+        }
+
+        return this.timestamp;
+    }
+
     public void buildVideoFileName() {
         String buildName;
         if ("N/A".equalsIgnoreCase(this.build) || Strings.isNullOrEmpty(this.build)) {
@@ -129,7 +138,7 @@ public class TestInformation {
             buildName = "/" + this.build.replaceAll("[^a-zA-Z0-9]", "_");
         }
 
-        if(Strings.isNullOrEmpty(this.testFileNameTemplate)) {
+        if (Strings.isNullOrEmpty(this.testFileNameTemplate)) {
             this.testFileNameTemplate = TEST_FILE_NAME_TEMPLATE;
         }
 
@@ -139,7 +148,7 @@ public class TestInformation {
                 .replace("{testName}", getTestName())
                 .replace("{browser}", this.browser)
                 .replace("{platform}", this.platform)
-                .replace("{timestamp}", commonProxyUtilities.getDateAndTimeFormatted(this.timestamp))
+                .replace("{timestamp}", commonProxyUtilities.getDateAndTimeFormatted(this.getTimestamp()))
                 .replace("{testStatus}", getTestStatus().toString())
                 .replaceAll("[^a-zA-Z0-9/\\-]", "_");
 
@@ -158,8 +167,13 @@ public class TestInformation {
         return String.format("%s %s, %s", browser, browserVersion, platform);
     }
 
-    public JsonObject getMetadata() { return this.metadata;}
-    public void setMetadata(JsonObject metadata) { this.metadata = metadata;}
+    public JsonObject getMetadata() {
+        return this.metadata;
+    }
+
+    public void setMetadata(JsonObject metadata) {
+        this.metadata = metadata;
+    }
 
     public enum TestStatus {
         COMPLETED(" 'Zalenium', 'TEST COMPLETED', --icon=/home/seluser/images/completed.png"),
