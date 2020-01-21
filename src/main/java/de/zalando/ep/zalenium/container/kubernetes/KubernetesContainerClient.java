@@ -3,6 +3,7 @@ package de.zalando.ep.zalenium.container.kubernetes;
 import de.zalando.ep.zalenium.container.ContainerClient;
 import de.zalando.ep.zalenium.container.ContainerClientRegistration;
 import de.zalando.ep.zalenium.container.ContainerCreationStatus;
+import de.zalando.ep.zalenium.container.kubernetes.filecopy.FileCopyStrategy;
 import de.zalando.ep.zalenium.container.kubernetes.filecopy.PodFileCopy;
 import de.zalando.ep.zalenium.streams.InputStreamGroupIterator;
 import de.zalando.ep.zalenium.util.Environment;
@@ -393,7 +394,10 @@ public class KubernetesContainerClient implements ContainerClient {
         config.setLabels(labels);
         config.setImagePullPolicy(imagePullPolicy);
         config.setImagePullSecrets(imagePullSecrets);
-        config.setMountedSharedFoldersMap(mountedSharedFoldersMap);
+
+        Map<VolumeMount, Volume> podVolumeMounts = getPodVolumes();
+        config.setMountedSharedFoldersMap(podVolumeMounts);
+
         config.setHostAliases(hostAliases);
         config.setNodeSelector(nodeSelector);
         config.setTolerations(tolerations);
@@ -415,6 +419,26 @@ public class KubernetesContainerClient implements ContainerClient {
 //        Track volume mounts
         seleniumPodMountsMap.put(containerName, podFolders);
         return new ContainerCreationStatus(true, containerName, containerName, nodePort);
+    }
+
+    /**
+     * Get volume mounts for pods from existing folders
+     * <p>
+     * If using the 'command' copy strategy the volume mounts on the pods will be different than those on the hub
+     * <p>
+     * Could only be run once at the beginning of the hub lifetime...
+     */
+    @NotNull
+    private Map<VolumeMount, Volume> getPodVolumes() {
+        Map<VolumeMount, Volume> podVolumeMounts = new HashMap<>();
+        FileCopyStrategy fileCopyStrategy = FileCopyStrategy.fromEnvVar(environment);
+
+        for (Map.Entry<VolumeMount, Volume> entry : mountedSharedFoldersMap.entrySet()) {
+            Volume volume = entry.getValue();
+            Volume modifiedVolume = fileCopyStrategy.volumeForNode(volume);
+            podVolumeMounts.put(entry.getKey(), modifiedVolume);
+        }
+        return podVolumeMounts;
     }
 
 

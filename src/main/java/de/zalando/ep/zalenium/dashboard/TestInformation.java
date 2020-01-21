@@ -29,7 +29,7 @@ public class TestInformation {
     private static final String BROWSER_STACK_PROXY_NAME = "BrowserStack";
     private static final String LAMBDA_TEST_PROXY_NAME = "LambdaTest";
     private static final CommonProxyUtilities commonProxyUtilities = new CommonProxyUtilities();
-    private String seleniumSessionId;
+    private final String seleniumSessionId;
     private String testName;
     private Date timestamp;
     private long addedToDashboardTime;
@@ -160,15 +160,6 @@ public class TestInformation {
 
     public JsonObject getMetadata() { return this.metadata;}
     public void setMetadata(JsonObject metadata) { this.metadata = metadata;}
-
-    public boolean equals(Object obj) {
-        if (obj == null) return false;
-        if (obj == this) return true;
-
-        if (!(obj instanceof TestInformation)) return false;
-        TestInformation o = (TestInformation) obj;
-        return o.getFileName().equals(this.getFileName());
-    }
 
     public enum TestStatus {
         COMPLETED(" 'Zalenium', 'TEST COMPLETED', --icon=/home/seluser/images/completed.png"),
