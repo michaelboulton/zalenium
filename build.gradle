@@ -53,7 +53,7 @@ dependencies {
 
 group = 'de.zalando.ep'
 version = '3.141.59x-SNAPSHOT'
-def dockerVersion = "52w"
+def dockerVersion = "58w"
 description = 'Zalenium'
 sourceCompatibility = '1.8'
 
@@ -61,12 +61,10 @@ tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
 
-def mainClassName = 'org.openqa.grid.selenium.GridLauncherV3'
-
 task fatJar(type: Jar) {
     manifest {
         attributes(
-                'Main-Class': mainClassName
+                'Main-Class': 'org.openqa.grid.selenium.GridLauncherV3'
         )
     }
 
@@ -83,7 +81,6 @@ task fatJar(type: Jar) {
         dependsOn(test)
     }
 }
-
 
 test {
     useTestNG()
