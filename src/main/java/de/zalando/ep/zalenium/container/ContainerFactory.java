@@ -6,10 +6,12 @@ import de.zalando.ep.zalenium.container.swarm.SwarmContainerClient;
 import de.zalando.ep.zalenium.container.swarm.SwarmUtilities;
 import de.zalando.ep.zalenium.util.Environment;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.util.function.Supplier;
 
+@Slf4j
 public class ContainerFactory {
 
     private static Supplier<Boolean> isKubernetes = () -> new File("/var/run/secrets/kubernetes.io/serviceaccount/token").canRead();
@@ -20,19 +22,23 @@ public class ContainerFactory {
 
     public static ContainerClient getContainerClient() {
         if (isKubernetes.get()) {
+            log.info("Creating Kubernetes client");
             return createKubernetesContainerClient();
         } else if (SwarmUtilities.isSwarmActive()) {
+            log.info("Creating Swarm client");
             return createSwarmContainerClient();
         } else if (isPassiveDocker()) {
+            log.info("Creating passive Docker client");
             return new DockerPassiveClient();
         } else {
+            log.info("Creating Docker client");
             return createDockerContainerClient();
         }
     }
 
     private static boolean isPassiveDocker() {
         String env = System.getenv("ZALENIUM_DOCKER_PASSIVE");
-        return env.equals("true");
+        return "true".equals(env);
     }
 
     private static DockerContainerClient createDockerContainerClient() {
