@@ -378,6 +378,9 @@ public class KubernetesContainerClient implements ContainerClient {
         flattenedEnvVars.add(new EnvVar("SHARED_DIR", podFolders.getSharedMountFolder(), null));
         flattenedEnvVars.add(new EnvVar("VIDEOS_DIR", podFolders.getVideoMountFolder(), null));
         flattenedEnvVars.add(new EnvVar("LOGS_DIR", podFolders.getLogMountFolder(), null));
+        if (!("true".equals(environment.getEnvVariable("VIDEO_RECORDING_ENABLED")))) {
+            flattenedEnvVars.add(new EnvVar("VIDEO", "false", null));
+        }
 
         Map<String, String> podSelector = new HashMap<>();
 
