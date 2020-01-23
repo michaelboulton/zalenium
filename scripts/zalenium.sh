@@ -308,7 +308,7 @@ trap DockerTerminate SIGTERM SIGINT SIGKILL
 
 StartUp()
 {
-    if [ ${KUBERNETES_ENABLED} == "false" ]; then
+    if [ ${KUBERNETES_ENABLED} == "false" ] && [ "${ZALENIUM_DOCKER_PASSIVE}" != "true" ]; then
         EnsureDockerWorks
         CONTAINER_ID=$(grep docker /proc/self/cgroup | head -n 1 | grep -o -E '[0-9a-f]{64}' | tail -n 1)
         CONTAINER_NAME=$(docker -H ${DOCKER_HOST} inspect ${CONTAINER_ID} | jq -r '.[0].Name' | sed 's/\///g')
