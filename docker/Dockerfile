@@ -415,6 +415,9 @@ RUN sudo chgrp -R 0 /home/seluser && \
     sudo chmod -R g=u /home/seluser && \
     sudo chmod -R u+x /home/seluser
 
+RUN mkdir -p /home/seluser/videos && \
+    sudo chown seluser:seluser /home/seluser/videos
+
 RUN echo ${ZAL_VER}
 COPY ${ZAL_VER}.jar /home/seluser/${ZAL_VER}.jar
 
