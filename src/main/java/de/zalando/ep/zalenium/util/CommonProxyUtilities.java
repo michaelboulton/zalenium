@@ -141,6 +141,7 @@ public class CommonProxyUtilities {
     }
 
     public String getDateAndTimeFormatted(Date d) {
+//        FIXME
         DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmssSSS");
         return dateFormat.format(d);
     }

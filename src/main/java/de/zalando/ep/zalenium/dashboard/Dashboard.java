@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,6 +67,7 @@ public class Dashboard implements DashboardInterface {
         return commonProxyUtilities.currentLocalPath();
     }
 
+    @NotNull
     public static String getLocalVideosPath() {
         return getCurrentLocalPath() + "/" + VIDEOS_FOLDER_NAME;
     }
@@ -87,7 +89,7 @@ public class Dashboard implements DashboardInterface {
         Dashboard.executedTestsWithVideo = executedTestsWithVideo;
     }
 
-    public synchronized void updateDashboard(TestInformation testInformation) {
+    public synchronized void updateDashboard(@NotNull TestInformation testInformation) {
         File testCountFile = new File(getLocalVideosPath(), TEST_COUNT_FILE);
         testInformation.setRetentionDate(commonProxyUtilities.getDateAndTime(testInformation.getTimestamp(), retentionPeriod));
 

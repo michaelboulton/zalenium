@@ -42,7 +42,7 @@ public class DashboardCollection {
     public static synchronized void updateDashboard(TestInformation testInformation) {
         String errMsg = "Error during update of dashboard: ";
 
-        log.info("Updating dashboard with {}", testInformation.toString());
+        log.info("Updating dashboards with {}", testInformation.toString());
 
         if (!initializedRemotes) {
             initRemoteDashboards();
@@ -57,6 +57,7 @@ public class DashboardCollection {
         } else {
             for (DashboardInterface dashboard : remoteDashboards) {
                 try {
+                    log.info("Updating {}", dashboard.getClass().toGenericString());
                     dashboard.updateDashboard(testInformation);
                 } catch (Exception e) {
                     log.warn(errMsg, e);

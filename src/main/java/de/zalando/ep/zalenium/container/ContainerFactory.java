@@ -1,15 +1,14 @@
 package de.zalando.ep.zalenium.container;
 
-import java.io.File;
-import java.util.function.Supplier;
-
 import com.google.common.annotations.VisibleForTesting;
-
 import de.zalando.ep.zalenium.container.kubernetes.KubernetesContainerClient;
 import de.zalando.ep.zalenium.container.swarm.SwarmContainerClient;
 import de.zalando.ep.zalenium.container.swarm.SwarmUtilities;
 import de.zalando.ep.zalenium.util.Environment;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
+
+import java.io.File;
+import java.util.function.Supplier;
 
 public class ContainerFactory {
 
@@ -18,18 +17,22 @@ public class ContainerFactory {
     private static KubernetesContainerClient kubernetesContainerClient;
     private static Supplier<DockerContainerClient> dockerContainerClient = DockerContainerClient::new;
     private static Supplier<SwarmContainerClient> swarmContainerClient = SwarmContainerClient::new;
-    
-    public static ContainerClient getContainerClient() {
 
+    public static ContainerClient getContainerClient() {
         if (isKubernetes.get()) {
             return createKubernetesContainerClient();
-        }
-        else if (SwarmUtilities.isSwarmActive()) {
+        } else if (SwarmUtilities.isSwarmActive()) {
             return createSwarmContainerClient();
-        }
-        else {
+        } else if (isPassiveDocker()) {
+            return new DockerPassiveClient();
+        } else {
             return createDockerContainerClient();
         }
+    }
+
+    private static boolean isPassiveDocker() {
+        String env = System.getenv("ZALENIUM_DOCKER_PASSIVE");
+        return env.equals("true");
     }
 
     private static DockerContainerClient createDockerContainerClient() {
@@ -39,7 +42,7 @@ public class ContainerFactory {
         dockerClient.initialiseContainerEnvironment();
         return dockerClient;
     }
-    
+
     private static KubernetesContainerClient createKubernetesContainerClient() {
         // We only want one kubernetes client because it creates lots of thread pools and such things
         // so lets cache a copy of it in this factory.
