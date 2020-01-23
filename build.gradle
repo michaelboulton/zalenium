@@ -96,9 +96,11 @@ task targetCopy(type: Copy) {
         file(copyDestination).eachFile { file ->
             if (file.isFile()) {
                 def fileText = file.text
-                fileText = fileText.replaceAll(('\\$\\{project.build.finalName}'), "${project.name}-${project.version}")
-                fileText = fileText.replaceAll(('\\$\\{project.version}'), "${project.version}")
-                file.write(fileText)
+                if (fileText.contains("\$")) {
+                    fileText = fileText.replaceAll(('\\$\\{project.build.finalName}'), "${project.name}-${project.version}")
+                    fileText = fileText.replaceAll(('\\$\\{project.version}'), "${project.version}")
+                    file.write(fileText)
+                }
             }
 
         }
@@ -110,7 +112,7 @@ docker {
 
     name "michaelboulton2/zalenium:" + (project.ext.properties.get("IMAGE_TAG") ?: dockerVersion)
 
-    files(copyDestination, fatJar.outputs)
+    files(targetCopy.outputs.files, fatJar.outputs)
 }
 
 publishing {
