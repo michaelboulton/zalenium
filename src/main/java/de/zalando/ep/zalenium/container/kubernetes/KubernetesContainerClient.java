@@ -618,7 +618,7 @@ public class KubernetesContainerClient implements ContainerClient {
                 .addNewVolume()
                 .withName("dshm")
                 .withNewEmptyDir()
-                .withMedium("Memory")
+//                .withMedium("Memory")
                 .endEmptyDir()
                 .endVolume()
 
