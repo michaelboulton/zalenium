@@ -107,10 +107,24 @@ task targetCopy(type: Copy) {
     }
 }
 
+def getGitHash() {
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'rev-parse', '--short', 'HEAD'
+        standardOutput = stdout
+    }
+    return stdout.toString().trim()
+}
+
+def baseName = (project.ext.properties.get("BASE_NAME") ?: "michaelboulton2/zalenium")
+def vertag = (project.ext.properties.get("IMAGE_TAG") ?: dockerVersion)
+def hashtag = getGitHash()
+
 docker {
     dependsOn(targetCopy, fatJar)
-
-    name "michaelboulton2/zalenium:" + (project.ext.properties.get("IMAGE_TAG") ?: dockerVersion)
+    name "$baseName"
+    tag("withver", "$name:$vertag")
+    tag("withhash", "$name:$hashtag")
 
     files(targetCopy.outputs.files, fatJar.outputs)
 }
