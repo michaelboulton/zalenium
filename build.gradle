@@ -53,7 +53,7 @@ dependencies {
 
 group = 'de.zalando.ep'
 version = '3.141.59x-SNAPSHOT'
-def dockerVersion = "66w"
+def dockerVersion = "67w"
 description = 'Zalenium'
 sourceCompatibility = '1.8'
 

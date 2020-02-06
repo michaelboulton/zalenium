@@ -342,6 +342,7 @@ public class DockeredSeleniumStarter {
         envVars.put("SELENIUM_NODE_PROXY_PARAMS", "de.zalando.ep.zalenium.proxy.DockerSeleniumRemoteProxy");
         envVars.put("MULTINODE", "true");
         envVars.put("SELENIUM_MULTINODE_PORT", String.valueOf(containerPort));
+        envVars.put("NODE_PORT", String.valueOf(containerPort));
         envVars.put("CHROME", "false");
         envVars.put("FIREFOX", "false");
         envVars.put("SEL_BROWSER_TIMEOUT_SECS", String.valueOf(getBrowserTimeout()));
