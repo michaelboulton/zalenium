@@ -321,6 +321,9 @@ public class DockeredSeleniumStarter {
         envVars.put("SELENIUM_HUB_HOST", hostIpAddress);
         envVars.put("SELENIUM_HUB_PORT", "4445");
         envVars.put("SELENIUM_NODE_HOST", seleniumNodeHost);
+        envVars.put("HUB_HOST", hostIpAddress);
+        envVars.put("HUB_PORT", "4445");
+        envVars.put("NODE_HOST", seleniumNodeHost);
         envVars.put("GRID", "false");
         envVars.put("WAIT_TIMEOUT", "120s");
         envVars.put("PICK_ALL_RANDOM_PORTS", "false");
