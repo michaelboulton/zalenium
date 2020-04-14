@@ -4,6 +4,7 @@ import de.zalando.ep.zalenium.dashboard.Dashboard;
 import de.zalando.ep.zalenium.dashboard.TestInformation;
 import de.zalando.ep.zalenium.util.CommonProxyUtilities;
 import de.zalando.ep.zalenium.util.TestUtils;
+import java.util.Date;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,6 +31,7 @@ public class RemoteDashboardTest {
             .testName("testName")
             .fileExtension(".mp4")
             .proxyName("proxyName")
+            .timestamp(new Date())
             .browser("browser")
             .browserVersion("browserVersion")
             .platform("platform")

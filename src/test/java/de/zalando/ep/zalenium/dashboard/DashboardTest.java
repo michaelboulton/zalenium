@@ -8,6 +8,7 @@ import java.io.IOException;
 import com.google.gson.JsonObject;
 import de.zalando.ep.zalenium.util.CommonProxyUtilities;
 import de.zalando.ep.zalenium.util.TestUtils;
+import java.util.Date;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -24,6 +25,7 @@ public class DashboardTest {
             .seleniumSessionId("seleniumSessionId")
             .testName("testName")
             .proxyName("proxyName")
+            .timestamp(new Date())
             .browser("browser")
             .browserVersion("browserVersion")
             .platform("platform")

@@ -4,6 +4,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import de.zalando.ep.zalenium.dashboard.TestInformation;
+import java.util.Date;
 import org.openqa.grid.common.RegistrationRequest;
 import org.openqa.grid.internal.GridRegistry;
 import org.openqa.selenium.remote.server.jmx.ManagedService;
@@ -123,6 +124,7 @@ public class LambdaTestRemoteProxy extends CloudTestingRemoteProxy {
                 .seleniumSessionId(seleniumSessionId)
                 .testName(testName)
                 .proxyName(getProxyName())
+                .timestamp(new Date())
                 .browser(browser)
                 .browserVersion(browserVersion)
                 .platform(platform)

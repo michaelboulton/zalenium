@@ -83,8 +83,13 @@ task fatJar(type: Jar) {
 }
 
 test {
-    useTestNG()
+    useJUnit()
 }
+
+tasks.withType(Test) {
+    maxParallelForks = 12
+}
+
 
 def copyDestination = "${project.buildDir}${File.separator}dockerContext"
 
